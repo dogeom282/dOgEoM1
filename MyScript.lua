@@ -1,4 +1,4 @@
--- FTAP (Fling Things and People) 올인원 스크립트 (자동완성 추가)
+-- FTAP (Fling Things and People) 올인원 스크립트 (안티 마스리스 + 블롭 킥)
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 -- =============================================
@@ -77,14 +77,12 @@ local function findPlayerByPartialName(partial)
             local name = player.Name:lower()
             local displayName = player.DisplayName:lower()
             
-            -- 이름이나 표시이름에 부분 문자열이 포함되면 매치
             if name:find(partial) or displayName:find(partial) then
                 table.insert(matches, player)
             end
         end
     end
     
-    -- 여러 개 매치되면 첫 번째 반환
     if #matches > 0 then
         return matches[1]
     end
@@ -94,7 +92,7 @@ end
 -- =============================================
 -- [ 블롭 관련 변수 ]
 -- =============================================
-local playersInLoop1V = {}  -- 블롭 공격 대상 리스트 (raw의 playersInLoop1V)
+local playersInLoop1V = {}
 local currentBlobS = nil
 local blobmanInstanceS = nil
 local sitJumpT = false
@@ -149,7 +147,6 @@ local function spawnBlobmanF()
     end
 end
 
--- 블롭 잡기 (raw의 BlobGrab)
 local function BlobGrab(blob, target, side)
     if not blob or not target then return end
     local detector = blob:FindFirstChild(side.."Detector")
@@ -165,7 +162,6 @@ local function BlobGrab(blob, target, side)
     end
 end
 
--- 블롭 릴리즈 (raw의 BlobRelease)
 local function BlobRelease(blob, target, side)
     if not blob or not target then return end
     local detector = blob:FindFirstChild(side.."Detector")
@@ -181,7 +177,6 @@ local function BlobRelease(blob, target, side)
     end
 end
 
--- 블롭 드롭 (raw의 BlobDrop)
 local function BlobDrop(blob, target, side)
     if not blob or not target then return end
     local detector = blob:FindFirstChild(side.."Detector")
@@ -197,7 +192,6 @@ local function BlobDrop(blob, target, side)
     end
 end
 
--- 블롭 매스리스 (raw의 BlobMassless)
 local function BlobMassless(blob, target, side)
     if not blob or not target then return end
     local char = plr.Character
@@ -226,7 +220,182 @@ local function BlobMassless(blob, target, side)
 end
 
 -- =============================================
--- [ 블롭 공격 함수 (raw의 loopPlayerBlobF 기반) ]
+-- [ 블롭 킥 함수 (raw의 loopPlayerBlobF 기반) ]
+-- =============================================
+local blobLoopT = false
+local blobLoopThread = nil
+
+local function BlobLoopKick()
+    UpdateCurrentBlobman()
+    if not currentBlobS then
+        Rayfield:Notify({Title = "블롭", Content = "블롭을 타고 있어야 합니다", Duration = 2})
+        return
+    end
+    
+    if blobLoopThread then
+        task.cancel(blobLoopThread)
+        blobLoopThread = nil
+    end
+    
+    blobLoopThread = task.spawn(function()
+        while blobLoopT do
+            for _, targetName in ipairs(playersInLoop1V) do
+                if not blobLoopT then break end
+                
+                local player = Players:FindFirstChild(targetName)
+                if not player then continue end
+                
+                -- 플롯에 있는지 확인 (raw의 PPs 조건)
+                if PPs and PPs:FindFirstChild(targetName) then continue end
+                if inv and inv:FindFirstChild(targetName) then continue end
+                
+                local character = player.Character
+                if not character then continue end
+                
+                local hrp = character:FindFirstChild("HumanoidRootPart")
+                if not hrp then continue end
+                
+                -- Massless 체크
+                if hrp.Massless == true then continue end
+                
+                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                if humanoid and humanoid.Health > 0 then
+                    -- 오너쉽 획득 시도
+                    local head = character:FindFirstChild("Head")
+                    if head then
+                        local tpRunning = true
+                        local originCF = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and plr.Character.HumanoidRootPart.CFrame
+                        
+                        -- TP 스레드
+                        local tpThread = task.spawn(function()
+                            while tpRunning do
+                                if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                                    local targetHRP = player.Character.HumanoidRootPart
+                                    local myHRP = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+                                    if myHRP and targetHRP then
+                                        local ping = plr:GetNetworkPing()
+                                        local offset = targetHRP.Position + (targetHRP.Velocity * (ping + 0.15))
+                                        myHRP.CFrame = CFrame.new(offset) * targetHRP.CFrame.Rotation
+                                    end
+                                end
+                                task.wait()
+                            end
+                        end)
+                        
+                        -- 오너쉽 획득 루프
+                        local ownerTag = nil
+                        for _ = 1, 30 do
+                            if not blobLoopT then break end
+                            pcall(function()
+                                SetNetworkOwner:FireServer(head, head.CFrame)
+                            end)
+                            ownerTag = head:FindFirstChild("PartOwner")
+                            if ownerTag and ownerTag:IsA("StringValue") and ownerTag.Value == plr.Name then
+                                break
+                            end
+                            task.wait(0.1)
+                        end
+                        
+                        tpRunning = false
+                        task.cancel(tpThread)
+                        
+                        -- 스티키 파트 처리 (raw의 targetNames)
+                        if ownerTag and ownerTag.Value == plr.Name then
+                            local targetNames = {"NinjaKunai", "NinjaShuriken", "NinjaKatana", "ToolCleaver", "ToolDiggingForkRusty", "ToolPencil", "ToolPickaxe"}
+                            for _, child in ipairs(Workspace:GetChildren()) do
+                                if child:IsA("Folder") and child.Name:match("SpawnedInToys$") then
+                                    for _, item in ipairs(child:GetChildren()) do
+                                        if table.find(targetNames, item.Name) and item:FindFirstChild("StickyPart") then
+                                            local sticky = item.StickyPart
+                                            local weld = sticky:FindFirstChild("StickyWeld")
+                                            if weld and weld:IsA("WeldConstraint") and weld.Part1 then
+                                                local targetParts = {
+                                                    character:FindFirstChild("Head"),
+                                                    character:FindFirstChild("Torso"),
+                                                    character:FindFirstChild("Left Arm"),
+                                                    character:FindFirstChild("Left Leg"),
+                                                    character:FindFirstChild("Right Arm"),
+                                                    character:FindFirstChild("Right Leg"),
+                                                    hrp:FindFirstChild("RagdollTouchedHitbox"),
+                                                    hrp:FindFirstChild("FirePlayerPart"),
+                                                }
+                                                for _, tPart in ipairs(targetParts) do
+                                                    if tPart and weld.Part1 == tPart then
+                                                        local basePart = item.PrimaryPart or sticky
+                                                        if basePart and (basePart.Position - hrp.Position).Magnitude <= 10 then
+                                                            pcall(function()
+                                                                SetNetworkOwner:FireServer(sticky, sticky.CFrame)
+                                                            end)
+                                                            sticky.CFrame = CFrame.new(0,9999,0)
+                                                        end
+                                                    end
+                                                end
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                            
+                            -- DestroyGrabLine 호출
+                            pcall(function()
+                                DestroyGrabLine:FireServer(head, head.CFrame)
+                            end)
+                            
+                            -- 위치 이동
+                            local myHrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+                            if myHrp then
+                                hrp.CFrame = CFrame.new(myHrp.CFrame.X, myHrp.CFrame.Y + 50, myHrp.CFrame.Z)
+                                myHrp.CFrame = hrp.CFrame
+                            end
+                            
+                            -- 블롭 매스리스
+                            BlobMassless(currentBlobS, hrp, "Right")
+                            
+                            -- 원래 위치로 복귀
+                            if originCF and myHrp then
+                                myHrp.CFrame = originCF
+                            end
+                        end
+                    end
+                end
+                task.wait(0.1)
+            end
+            task.wait(0.3)
+        end
+    end)
+end
+
+-- =============================================
+-- [ 안티 마스리스 함수 (raw의 masslessF 기반) ]
+-- =============================================
+local antiMasslessEnabled = false
+local antiMasslessThread = nil
+
+local function AntiMasslessF()
+    if antiMasslessThread then
+        task.cancel(antiMasslessThread)
+        antiMasslessThread = nil
+    end
+
+    if not antiMasslessEnabled then return end
+
+    antiMasslessThread = task.spawn(function()
+        while antiMasslessEnabled do
+            local char = plr.Character
+            if char then
+                for _, part in ipairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") and part.Massless == true then
+                        part.Massless = false
+                    end
+                end
+            end
+            task.wait(0.1)
+        end
+    end)
+end
+
+-- =============================================
+-- [ 블롭 공격 함수 ]
 -- =============================================
 local function BlobAttackAll(mode)
     UpdateCurrentBlobman()
@@ -242,21 +411,16 @@ local function BlobAttackAll(mode)
             local hrp = player.Character:FindFirstChild("HumanoidRootPart")
             if hrp then
                 if mode == "kill" then
-                    -- Kill 모드: Grab + Release 반복
                     BlobGrab(currentBlobS, hrp, "Right")
                     task.wait(0.1)
                     BlobRelease(currentBlobS, hrp, "Right")
                 elseif mode == "massless" then
-                    -- Massless 모드
                     BlobMassless(currentBlobS, hrp, "Right")
                 elseif mode == "grab" then
-                    -- Grab만
                     BlobGrab(currentBlobS, hrp, "Right")
                 elseif mode == "release" then
-                    -- Release만
                     BlobRelease(currentBlobS, hrp, "Right")
                 elseif mode == "drop" then
-                    -- Drop만
                     BlobDrop(currentBlobS, hrp, "Right")
                 end
                 count = count + 1
@@ -472,6 +636,7 @@ end
 local targetList = {}
 local Whitelist = {}
 local WhiteListMode = false
+local PPs = Workspace:FindFirstChild("PlotItems") and Workspace.PlotItems:FindFirstChild("PlayersInPlots")
 
 local function manualKill(mode)
     local char = plr.Character
@@ -828,8 +993,8 @@ end
 -- [ Rayfield UI 설정 ]
 -- =============================================
 local Window = Rayfield:CreateWindow({
-    Name = "FTAP 올인원 (자동완성 추가)",
-    LoadingTitle = "블롭 + PCLD + 보안 + 베리어 + 알림 + 자동완성",
+    Name = "FTAP 올인원 (안티 마스리스 + 블롭 킥)",
+    LoadingTitle = "블롭 + PCLD + 보안 + 베리어 + 알림 + 자동완성 + 마스리스 + 블롭킥",
     ConfigurationSaving = { Enabled = false }
 })
 
@@ -906,11 +1071,10 @@ spawn(function()
 end)
 
 -- =============================================
--- [ 블롭 탭 (자동완성 추가) ]
+-- [ 블롭 탭 ]
 -- =============================================
 BlobTab:CreateSection("🦠 블롭 공격 대상")
 
--- 블롭 대상 목록 드롭다운 (raw의 playersInLoop1V)
 local BlobTargetDropdown = BlobTab:CreateDropdown({
     Name = "List",
     Options = playersInLoop1V,
@@ -922,7 +1086,6 @@ local BlobTargetDropdown = BlobTab:CreateDropdown({
     end
 })
 
--- 자동완성 추가 입력
 BlobTab:CreateInput({
     Name = "Add (자동완성)",
     PlaceholderText = "닉네임 일부 입력",
@@ -930,14 +1093,12 @@ BlobTab:CreateInput({
     Callback = function(Value)
         if not Value or Value == "" then return end
         
-        -- 자동완성으로 플레이어 찾기
         local target = findPlayerByPartialName(Value)
         if not target then
             Rayfield:Notify({Title = "블롭", Content = "플레이어를 찾을 수 없음", Duration = 2})
             return
         end
         
-        -- 이미 있는지 확인
         for _, name in ipairs(playersInLoop1V) do
             if name == target.Name then
                 Rayfield:Notify({Title = "블롭", Content = "이미 목록에 있음", Duration = 2})
@@ -945,14 +1106,12 @@ BlobTab:CreateInput({
             end
         end
         
-        -- 추가
         table.insert(playersInLoop1V, target.Name)
         BlobTargetDropdown:Refresh(playersInLoop1V, true)
         Rayfield:Notify({Title = "블롭", Content = "추가: " .. target.Name, Duration = 2})
     end
 })
 
--- 제거 입력
 BlobTab:CreateInput({
     Name = "Remove",
     PlaceholderText = "닉네임 입력",
@@ -1050,6 +1209,26 @@ BlobTab:CreateButton({
     Callback = function() BlobAttackAll("drop") end
 })
 
+BlobTab:CreateSection("🔄 블롭 자동 킥")
+
+local BlobLoopKickToggle = BlobTab:CreateToggle({
+    Name = "🔄 블롭 자동 킥 (루프)",
+    CurrentValue = false,
+    Callback = function(Value)
+        blobLoopT = Value
+        if blobLoopT then
+            BlobLoopKick()
+            Rayfield:Notify({Title = "블롭 킥", Content = "자동 루프 시작", Duration = 2})
+        else
+            if blobLoopThread then
+                task.cancel(blobLoopThread)
+                blobLoopThread = nil
+            end
+            Rayfield:Notify({Title = "블롭 킥", Content = "자동 루프 종료", Duration = 2})
+        end
+    end
+})
+
 BlobTab:CreateSection("✨ 구찌 설정")
 
 local AutoGucciToggle = BlobTab:CreateToggle({
@@ -1122,8 +1301,19 @@ local AntiVoidToggle = SecurityTab:CreateToggle({
 })
 AntiVoidToggle:Set(true)
 
+-- 안티 마스리스 토글 추가
+local AntiMasslessToggle = SecurityTab:CreateToggle({
+    Name = "⚖️ Anti-Massless (raw 기반)",
+    CurrentValue = false,
+    Callback = function(Value)
+        antiMasslessEnabled = Value
+        AntiMasslessF()
+        Rayfield:Notify({Title = "안티 마스리스", Content = Value and "활성화" or "비활성화", Duration = 2})
+    end
+})
+
 -- =============================================
--- [ 킬 플레이어 정하기 탭 (자동완성 추가) ]
+-- [ 킬 플레이어 정하기 탭 ]
 -- =============================================
 TargetTab:CreateSection("🎯 킬 플레이어 정하기")
 
@@ -1137,7 +1327,6 @@ local TargetDropdown = TargetTab:CreateDropdown({
     end
 })
 
--- 자동완성 추가 입력
 TargetTab:CreateInput({
     Name = "Add (자동완성)",
     PlaceholderText = "닉네임 일부 입력",
@@ -1296,6 +1485,6 @@ bringRayfieldToFront()
 
 Rayfield:Notify({
     Title = "🚀 로드 완료",
-    Content = "자동완성: 닉 일부만 입력해도 추가됨",
+    Content = "안티 마스리스 + 블롭 킥 추가됨",
     Duration = 5
 })
