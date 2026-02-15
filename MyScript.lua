@@ -1,4 +1,4 @@
--- FTAP (Fling Things and People) 올인원 스크립트 (킥그랩 추가)
+-- FTAP (Fling Things and People) 올인원 스크립트 (안티 스티키 추가)
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 -- =============================================
@@ -54,7 +54,7 @@ local GrabEvents = rs:FindFirstChild("GrabEvents")
 local CharacterEvents = rs:FindFirstChild("CharacterEvents")
 local PlayerEvents = rs:FindFirstChild("PlayerEvents")
 local MenuToys = rs:FindFirstChild("MenuToys")
-local BombEvents = rs:FindFirstChild("BombEvents")  -- 눈덩이 폭발용
+local BombEvents = rs:FindFirstChild("BombEvents")
 
 local SetNetworkOwner = GrabEvents and (GrabEvents:FindFirstChild("SetNetworkOwner") or GrabEvents:FindFirstChild("SetOwner"))
 local DestroyGrabLine = GrabEvents and (GrabEvents:FindFirstChild("DestroyGrabLine") or GrabEvents:FindFirstChild("DestroyLine"))
@@ -68,13 +68,263 @@ local StickyPartEvent = PlayerEvents and (PlayerEvents:FindFirstChild("StickyPar
 local BombExplode = BombEvents and (BombEvents:FindFirstChild("BombExplode") or BombEvents:FindFirstChild("Explode"))
 
 -- =============================================
+-- [ 안티 불 함수 (수정된 버전) ]
+-- =============================================
+local AntiBurnV = false
+local AntiBurnThread = nil
+
+local function AntiBurn()
+    if AntiBurnThread then
+        task.cancel(AntiBurnThread)
+        AntiBurnThread = nil
+    end
+
+    if not AntiBurnV then return end
+
+    AntiBurnThread = task.spawn(function()
+        -- ExtinguishPart 찾기 (경로 수정)
+        local EP = nil
+        local map = Workspace:FindFirstChild("Map")
+        if map then
+            local hole = map:FindFirstChild("Hole")
+            if hole then
+                local poisonSmallHole = hole:FindFirstChild("PoisonSmallHole")
+                if poisonSmallHole then
+                    EP = poisonSmallHole:FindFirstChild("ExtinguishPart")
+                end
+            end
+        end
+
+        -- 다른 가능한 경로 시도
+        if not EP then
+            for _, child in ipairs(Workspace:GetDescendants()) do
+                if child.Name == "ExtinguishPart" and child:IsA("BasePart") then
+                    EP = child
+                    break
+                end
+            end
+        end
+
+        if not EP then
+            Rayfield:Notify({Title = "안티 불", Content = "ExtinguishPart를 찾을 수 없음", Duration = 2})
+            return
+        end
+
+        -- 원래 속성 저장
+        local originalSize = EP.Size
+        local originalCFrame = EP.CFrame
+        local originalTransparency = EP.Transparency
+        local originalCastShadow = EP.CastShadow
+        
+        local tex = EP:FindFirstChild("Tex")
+        local originalTexTransparency = tex and tex.Transparency or 0
+
+        while AntiBurnV do
+            local char = plr.Character
+            if char then
+                local head = char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
+                if head then
+                    -- ExtinguishPart를 머리로 이동
+                    EP.Transparency = 1
+                    EP.CastShadow = false
+                    
+                    if tex then
+                        tex.Transparency = 1
+                    end
+                    
+                    EP.Size = Vector3.new(0, 0, 0)
+                    EP.CFrame = head.CFrame
+                    task.wait()
+                    EP.CFrame = head.CFrame * CFrame.new(0, 3, 0)
+                end
+            end
+            task.wait()
+        end
+
+        -- 비활성화 시 원래대로 복구
+        EP.Size = originalSize
+        EP.CFrame = originalCFrame
+        EP.Transparency = originalTransparency
+        EP.CastShadow = originalCastShadow
+        if tex then
+            tex.Transparency = originalTexTransparency
+        end
+    end)
+end
+
+-- =============================================
+-- [ 안티 폭발 함수 (수정된 버전) ]
+-- =============================================
+local AntiExplosionT = false
+local AntiExplosionC = nil
+local AntiExplosionH = nil
+
+local function AntiExplosionF()
+    if AntiExplosionC then
+        AntiExplosionC:Disconnect()
+        AntiExplosionC = nil
+    end
+    if AntiExplosionH then
+        AntiExplosionH:Disconnect()
+        AntiExplosionH = nil
+    end
+
+    if not AntiExplosionT then return end
+
+    local char = plr.Character
+    if not char then return end
+
+    local hrp = char:WaitForChild("HumanoidRootPart")
+    local hum = char:WaitForChild("Humanoid")
+
+    -- 폭발 감지 (ChildAdded)
+    AntiExplosionC = Workspace.ChildAdded:Connect(function(model)
+        if not char or not hrp or not hum or not AntiExplosionT then return end
+        
+        -- 폭발체크 (BasePart이고 20스터드 이내)
+        if model:IsA("BasePart") and (model.Position - hrp.Position).Magnitude <= 25 then
+            if hum.SeatPart ~= nil then
+                -- 앉아있을 때는 앵커로 고정
+                hrp.Anchored = true
+                task.wait(0.05)
+                hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+                hrp.Anchored = false
+            else
+                -- 서 있을 때
+                hrp.Anchored = true
+                task.wait(0.05)
+                hum:ChangeState(Enum.HumanoidStateType.Running)
+                hrp.Anchored = false
+                hum.AutoRotate = true
+
+                -- RagdollLimbPart CanCollide 비활성화
+                for _, limb in ipairs(char:GetDescendants()) do
+                    if limb:IsA("BasePart") and limb.Name == "RagdollLimbPart" then
+                        limb.CanCollide = false
+                    end
+                end
+            end
+        end
+    end)
+
+    -- 폭발 감지 (DescendantAdded) - 추가 안전장치
+    AntiExplosionH = Workspace.DescendantAdded:Connect(function(model)
+        if not char or not hrp or not hum or not AntiExplosionT then return end
+        
+        if model:IsA("BasePart") and (model.Position - hrp.Position).Magnitude <= 25 then
+            hrp.Anchored = true
+            task.wait(0.05)
+            hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+            hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+            hrp.Anchored = false
+        end
+    end)
+end
+
+-- =============================================
+-- [ 안티 스티키 아우라 함수 (raw의 ViewAuraF 기반) ]
+-- =============================================
+local AntiStickyAuraT = false
+local AntiStickyAuraThread = nil
+
+local function AntiStickyAuraF()
+    if AntiStickyAuraThread then
+        task.cancel(AntiStickyAuraThread)
+        AntiStickyAuraThread = nil
+    end
+
+    if not AntiStickyAuraT then return end
+
+    -- 스티키 파트 대상 목록 (raw의 targetNames)
+    local targetNames = { 
+        "NinjaKunai", "NinjaShuriken", "NinjaKatana", 
+        "ToolCleaver", "ToolDiggingForkRusty", 
+        "ToolPencil", "ToolPickaxe" 
+    }
+
+    AntiStickyAuraThread = task.spawn(function()
+        while AntiStickyAuraT do
+            local character = plr.Character
+            if not character then 
+                task.wait(0.1)
+                goto continue 
+            end
+
+            local hrp = character:FindFirstChild("HumanoidRootPart")
+            if not hrp then 
+                task.wait(0.1)
+                goto continue 
+            end
+
+            -- 모든 SpawnedInToys 폴더 검사
+            for _, folder in ipairs(Workspace:GetChildren()) do
+                if folder:IsA("Folder") and folder.Name:match("SpawnedInToys$") then
+                    -- 내 인벤토리는 제외
+                    if folder.Name ~= (plr.Name .. "SpawnedInToys") then
+                        for _, item in ipairs(folder:GetChildren()) do
+                            -- 대상 아이템인지 확인
+                            for _, targetName in ipairs(targetNames) do
+                                if item.Name == targetName and item:FindFirstChild("StickyPart") then
+                                    local sticky = item.StickyPart
+                                    local basePart = item.PrimaryPart or sticky
+                                    local dist = (basePart.Position - hrp.Position).Magnitude
+
+                                    -- 30스터드 이내면 오너쉽 획득
+                                    if dist <= 30 then
+                                        pcall(function()
+                                            if SetNetworkOwner then
+                                                SetNetworkOwner:FireServer(sticky, sticky.CFrame)
+                                            end
+                                        end)
+                                    end
+                                    break
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+            task.wait(0.03) -- raw와 동일한 0.03초 대기
+            ::continue::
+        end
+    end)
+end
+
+-- =============================================
+-- [ 자동완성 함수 ]
+-- =============================================
+local function findPlayerByPartialName(partial)
+    if not partial or partial == "" then return nil end
+    
+    partial = partial:lower()
+    local matches = {}
+    
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= plr then
+            local name = player.Name:lower()
+            local displayName = player.DisplayName:lower()
+            
+            if name:find(partial) or displayName:find(partial) then
+                table.insert(matches, player)
+            end
+        end
+    end
+    
+    if #matches > 0 then
+        return matches[1]
+    end
+    return nil
+end
+
+-- =============================================
 -- [ 킥그랩 관련 변수 ]
 -- =============================================
 local KickGrabState = {
     Target = nil,
     Looping = false,
     AutoRagdoll = false,
-    Mode = "Camera",  -- "Camera", "Up", "Down"
+    Mode = "Camera",
     DetentionDist = 19,
     SnowBallLooping = false
 }
@@ -95,14 +345,13 @@ local function GetPallet()
 end
 
 -- =============================================
--- [ 킥그랩 메인 루프 (원본 그대로) ]
+-- [ 킥그랩 메인 루프 ]
 -- =============================================
 local function ExecuteKickGrabLoop()
     local lastStrikeTime = tick() 
     local lastSpawnTime = 0 
     local currentPalletRef = nil
     local isPalletOwned = false
-    
     local hasClaimed = false
     local isBlinking = false
     local frameToggle = true
@@ -123,7 +372,7 @@ local function ExecuteKickGrabLoop()
             
             local distance = (myHrp.Position - targetHrp.Position).Magnitude
             
-            -- [[ A. 원거리 진입 (>20) -> 납치 ]]
+            -- A. 원거리 진입 (>20) -> 납치
             if distance > 20 and not hasClaimed and rOwner then
                 isBlinking = true
                 local originalCFrame = myHrp.CFrame
@@ -147,7 +396,7 @@ local function ExecuteKickGrabLoop()
                 hasClaimed = true
                 isBlinking = false 
             
-            -- [[ B. 근거리 진입 (<=20) -> 제자리 고정 ]]
+            -- B. 근거리 진입 (<=20) -> 제자리 고정
             elseif distance <= 20 and not hasClaimed and rOwner then
                 local instantClaimStart = tick()
                 while (tick() - instantClaimStart < 0.3) do
@@ -159,7 +408,7 @@ local function ExecuteKickGrabLoop()
                 hasClaimed = true 
             end
             
-            -- [[ C. Kick Grab Logic ]]
+            -- C. Kick Grab Logic
             if not isBlinking and rOwner and rDestroy then
                 local detentionPos
                 if KickGrabState.Mode == "Up" then 
@@ -186,7 +435,7 @@ local function ExecuteKickGrabLoop()
                 frameToggle = not frameToggle
             end
 
-            -- [[ D. Pallet AI ]]
+            -- D. Pallet AI
             if KickGrabState.AutoRagdoll then
                 local pallet = GetPallet()
                 if not pallet and (tick() - lastSpawnTime > 3.0) then
@@ -238,7 +487,7 @@ local function ExecuteKickGrabLoop()
 end
 
 -- =============================================
--- [ SnowBall 루프 함수 (원본 그대로) ]
+-- [ SnowBall 루프 함수 ]
 -- =============================================
 local function ExecuteSnowballLoop()
     while KickGrabState.SnowBallLooping do
@@ -284,32 +533,6 @@ local function ExecuteSnowballLoop()
         end
         task.wait(0.15)
     end
-end
-
--- =============================================
--- [ 자동완성 함수 ]
--- =============================================
-local function findPlayerByPartialName(partial)
-    if not partial or partial == "" then return nil end
-    
-    partial = partial:lower()
-    local matches = {}
-    
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= plr then
-            local name = player.Name:lower()
-            local displayName = player.DisplayName:lower()
-            
-            if name:find(partial) or displayName:find(partial) then
-                table.insert(matches, player)
-            end
-        end
-    end
-    
-    if #matches > 0 then
-        return matches[1]
-    end
-    return nil
 end
 
 -- =============================================
@@ -1320,8 +1543,8 @@ end
 -- [ Rayfield UI 설정 ]
 -- =============================================
 local Window = Rayfield:CreateWindow({
-    Name = "FTAP 올인원 (킥그랩 추가)",
-    LoadingTitle = "블롭 + PCLD + 보안 + 베리어 + 알림 + 마스리스 + 블롭킥 + 루프그랩 + 안티불 + 안티폭발 + 팔다리제거 + 킥그랩",
+    Name = "FTAP 올인원 (안티 스티키 추가)",
+    LoadingTitle = "블롭 + PCLD + 보안 + 베리어 + 알림 + 마스리스 + 블롭킥 + 루프그랩 + 안티불 + 안티폭발 + 팔다리제거 + 킥그랩 + 안티스티키",
     ConfigurationSaving = { Enabled = false }
 })
 
@@ -1332,7 +1555,8 @@ local GrabTab = Window:CreateTab("그랩", 4483362458)
 local SecurityTab = Window:CreateTab("보안", 4483362458)
 local TargetTab = Window:CreateTab("킬 플레이어 정하기", 4483362458)
 local NotifyTab = Window:CreateTab("🔔 알림", 4483362458)
-local KickGrabTab = Window:CreateTab("👢 킥그랩", 4483362458)  -- 새 탭
+local KickGrabTab = Window:CreateTab("👢 킥그랩", 4483362458)
+local AuraTab = Window:CreateTab("🌀 아우라", 4483362458)  -- 새 아우라 탭
 local SettingsTab = Window:CreateTab("설정", 4483362458)
 
 -- =============================================
@@ -1598,7 +1822,89 @@ local LoopGrabToggle = GrabTab:CreateToggle({
 })
 
 -- =============================================
--- [ 킥그랩 탭 (새로 추가) ]
+-- [ 아우라 탭 (새로 추가) ]
+-- =============================================
+AuraTab:CreateSection("🌀 안티 스티키 아우라")
+
+local AntiStickyAuraToggle = AuraTab:CreateToggle({
+    Name = "🛡️ Anti-Sticky Aura (raw 기반)",
+    CurrentValue = false,
+    Callback = function(Value)
+        AntiStickyAuraT = Value
+        AntiStickyAuraF()
+        Rayfield:Notify({Title = "안티 스티키", Content = Value and "활성화 (30스터드)" or "비활성화", Duration = 2})
+    end
+})
+
+AuraTab:CreateParagraph({
+    Title = "설명",
+    Content = "주변 30스터드 내의 스티키 파트(NinjaKunai, Shuriken 등)의 오너쉽을 자동으로 획득합니다."
+})
+
+-- =============================================
+-- [ 보안 탭 (수정된 안티 불/폭발) ]
+-- =============================================
+SecurityTab:CreateSection("🔰 방어 설정")
+
+local AntiVoidToggle = SecurityTab:CreateToggle({
+    Name = "Anti-Void",
+    CurrentValue = true,
+    Callback = function(Value)
+        if Value then
+            Workspace.FallenPartsDestroyHeight = -50000
+        else
+            Workspace.FallenPartsDestroyHeight = -100
+        end
+    end
+})
+AntiVoidToggle:Set(true)
+
+local AntiMasslessToggle = SecurityTab:CreateToggle({
+    Name = "⚖️ Anti-Massless",
+    CurrentValue = false,
+    Callback = function(Value)
+        antiMasslessEnabled = Value
+        AntiMasslessF()
+        Rayfield:Notify({Title = "안티 마스리스", Content = Value and "활성화" or "비활성화", Duration = 2})
+    end
+})
+
+-- 수정된 안티 불 토글
+local AntiBurnToggle = SecurityTab:CreateToggle({
+    Name = "🔥 Anti-Burn (수정됨)",
+    CurrentValue = false,
+    Callback = function(Value)
+        AntiBurnV = Value
+        AntiBurn()
+        Rayfield:Notify({Title = "안티 불", Content = Value and "활성화" or "비활성화", Duration = 2})
+    end
+})
+
+-- 수정된 안티 폭발 토글
+local AntiExplodeToggle = SecurityTab:CreateToggle({
+    Name = "💥 Anti-Explosion (수정됨)",
+    CurrentValue = false,
+    Callback = function(Value)
+        AntiExplosionT = Value
+        if Value then
+            AntiExplosionF()
+            Rayfield:Notify({Title = "안티 폭발", Content = "활성화", Duration = 2})
+        else
+            if AntiExplosionC then
+                AntiExplosionC:Disconnect()
+                AntiExplosionC = nil
+            end
+            if AntiExplosionH then
+                AntiExplosionH:Disconnect()
+                AntiExplosionH = nil
+            end
+            Rayfield:Notify({Title = "안티 폭발", Content = "비활성화", Duration = 2})
+        end
+    end
+})
+
+-- =============================================
+-- [ 킥그랩 탭 ]
 -- =============================================
 KickGrabTab:CreateSection("🎯 대상 선택")
 
@@ -1624,7 +1930,6 @@ local TargetDropdown = KickGrabTab:CreateDropdown({
     end
 })
 
--- 대상 선택 입력 (자동완성)
 KickGrabTab:CreateInput({
     Name = "대상 입력 (자동완성)",
     PlaceholderText = "닉네임 일부 입력",
@@ -1643,7 +1948,6 @@ KickGrabTab:CreateInput({
 
 KickGrabTab:CreateSection("⚙️ 모드 설정")
 
--- 모드 선택 드롭다운
 local ModeDropdown = KickGrabTab:CreateDropdown({
     Name = "모드 선택",
     Options = {"Camera", "Up", "Down"},
@@ -1655,7 +1959,6 @@ local ModeDropdown = KickGrabTab:CreateDropdown({
     end
 })
 
--- 거리 입력
 local DistInput = KickGrabTab:CreateInput({
     Name = "Camera 거리",
     CurrentValue = "19",
@@ -1671,7 +1974,6 @@ local DistInput = KickGrabTab:CreateInput({
 
 KickGrabTab:CreateSection("🎮 실행")
 
--- 킥그랩 토글
 local KickGrabToggle = KickGrabTab:CreateToggle({
     Name = "👢 Kick Grab",
     CurrentValue = false,
@@ -1691,7 +1993,6 @@ local KickGrabToggle = KickGrabTab:CreateToggle({
     end
 })
 
--- 오토 래그돌 토글
 local AutoRagdollToggle = KickGrabTab:CreateToggle({
     Name = "🔄 Auto Ragdoll",
     CurrentValue = false,
@@ -1701,7 +2002,6 @@ local AutoRagdollToggle = KickGrabTab:CreateToggle({
     end
 })
 
--- 스노우볼 토글
 local SnowBallToggle = KickGrabTab:CreateToggle({
     Name = "❄️ SnowBall Ragdoll",
     CurrentValue = false,
@@ -1717,70 +2017,6 @@ local SnowBallToggle = KickGrabTab:CreateToggle({
             Rayfield:Notify({Title = "스노우볼", Content = "활성화", Duration = 2})
         else
             Rayfield:Notify({Title = "스노우볼", Content = "비활성화", Duration = 2})
-        end
-    end
-})
-
--- =============================================
--- [ 보안 탭 ]
--- =============================================
-SecurityTab:CreateSection("🔰 방어 설정")
-
-local AntiKickToggle = SecurityTab:CreateToggle({
-    Name = "Anti-Kick",
-    CurrentValue = false,
-    Callback = function(Value)
-        -- Anti-Kick 기능
-    end
-})
-
-local AntiVoidToggle = SecurityTab:CreateToggle({
-    Name = "Anti-Void",
-    CurrentValue = true,
-    Callback = function(Value)
-        if Value then
-            Workspace.FallenPartsDestroyHeight = -50000
-        else
-            Workspace.FallenPartsDestroyHeight = -100
-        end
-    end
-})
-AntiVoidToggle:Set(true)
-
-local AntiMasslessToggle = SecurityTab:CreateToggle({
-    Name = "⚖️ Anti-Massless",
-    CurrentValue = false,
-    Callback = function(Value)
-        antiMasslessEnabled = Value
-        AntiMasslessF()
-        Rayfield:Notify({Title = "안티 마스리스", Content = Value and "활성화" or "비활성화", Duration = 2})
-    end
-})
-
-local AntiBurnToggle = SecurityTab:CreateToggle({
-    Name = "🔥 Anti-Burn",
-    CurrentValue = false,
-    Callback = function(Value)
-        AntiBurnV = Value
-        AntiBurn()
-        Rayfield:Notify({Title = "안티 불", Content = Value and "활성화" or "비활성화", Duration = 2})
-    end
-})
-
-local AntiExplodeToggle = SecurityTab:CreateToggle({
-    Name = "💥 Anti-Explosion",
-    CurrentValue = false,
-    Callback = function(Value)
-        AntiExplosionT = Value
-        if Value then
-            AntiExplosionF()
-            Rayfield:Notify({Title = "안티 폭발", Content = "활성화", Duration = 2})
-        else
-            if AntiExplosionC then
-                AntiExplosionC:Disconnect()
-                AntiExplosionC = nil
-            end
-            Rayfield:Notify({Title = "안티 폭발", Content = "비활성화", Duration = 2})
         end
     end
 })
@@ -1959,118 +2195,6 @@ SettingsTab:CreateToggle({
 })
 
 -- =============================================
--- [ 안티 불 함수 추가 정의 ]
--- =============================================
-local AntiBurnV = false
-local AntiBurnThread = nil
-
-local function AntiBurn()
-    if AntiBurnThread then
-        task.cancel(AntiBurnThread)
-        AntiBurnThread = nil
-    end
-
-    if not AntiBurnV then return end
-
-    AntiBurnThread = task.spawn(function()
-        local EP = nil
-        local hole = Workspace:FindFirstChild("Map") and Workspace.Map:FindFirstChild("Hole")
-        if hole then
-            local poisonSmallHole = hole:FindFirstChild("PoisonSmallHole")
-            if poisonSmallHole then
-                EP = poisonSmallHole:FindFirstChild("ExtinguishPart")
-            end
-        end
-
-        if not EP then
-            Rayfield:Notify({Title = "안티 불", Content = "ExtinguishPart를 찾을 수 없음", Duration = 2})
-            return
-        end
-
-        while AntiBurnV do
-            local char = plr.Character
-            if char then
-                local head = char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
-                if head then
-                    EP.Transparency = 1
-                    EP.CastShadow = false
-                    
-                    local tex = EP:FindFirstChild("Tex")
-                    if tex then
-                        tex.Transparency = 1
-                    end
-                    
-                    EP.Size = Vector3.new(0, 0, 0)
-                    EP.CFrame = head.CFrame
-                    task.wait()
-                    EP.CFrame = head.CFrame * CFrame.new(0, 3, 0)
-                end
-            end
-            task.wait()
-        end
-
-        if EP then
-            EP.Size = Vector3.new(103.90400695800781, 7.5, 95.14202880859375)
-            EP.CFrame = CFrame.new(157.075317, -58.8218384, 287.346954, -1.1920929e-07, 0, -1.00000012, 0, 1, 0, 1.00000012, 0, -1.1920929e-07)
-            EP.Transparency = 0.5
-            EP.CastShadow = true
-            local tex = EP:FindFirstChild("Tex")
-            if tex then
-                tex.Transparency = 0
-            end
-        end
-    end)
-end
-
--- =============================================
--- [ 안티 폭발 함수 추가 정의 ]
--- =============================================
-local AntiExplosionT = false
-local AntiExplosionC = nil
-
-local function AntiExplosionF()
-    if AntiExplosionC then
-        AntiExplosionC:Disconnect()
-        AntiExplosionC = nil
-    end
-
-    if not AntiExplosionT then return end
-
-    local char = plr.Character
-    if not char then return end
-
-    local hrp = char:WaitForChild("HumanoidRootPart")
-    local hum = char:WaitForChild("Humanoid")
-
-    AntiExplosionC = Workspace.ChildAdded:Connect(function(model)
-        if not char or not hrp or not hum then return end
-        if not AntiExplosionT then return end
-        
-        if model:IsA("BasePart") and (model.Position - hrp.Position).Magnitude <= 20 then
-            if hum.SeatPart ~= nil then
-                hrp.Anchored = true
-                task.wait(0.03)
-                hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-                hrp.Anchored = false
-            else
-                hrp.Anchored = true
-                task.wait()
-                hum:ChangeState(Enum.HumanoidStateType.Running)
-                hrp.Anchored = false
-                hum.AutoRotate = true
-
-                for _, limb in ipairs(char:GetDescendants()) do
-                    if limb:IsA("BasePart") and limb.Name == "RagdollLimbPart" then
-                        limb.CanCollide = false
-                    end
-                end
-            end
-        end
-    end)
-end
-
--- =============================================
 -- [ 자동 실행 ]
 -- =============================================
 task.wait(1)
@@ -2085,6 +2209,6 @@ bringRayfieldToFront()
 
 Rayfield:Notify({
     Title = "🚀 로드 완료",
-    Content = "킥그랩 추가됨 | 새 탭에서 사용",
+    Content = "안티 불/폭발 수정 | 안티 스티키 아우라 추가",
     Duration = 5
 })
