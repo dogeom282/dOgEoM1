@@ -1,4 +1,4 @@
--- FTAP (Fling Things and People) 올인원 스크립트 (모든 기능 통합 + 안티킥)
+-- FTAP (Fling Things and People) 올인원 스크립트 (블롭 TP 추가)
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 -- =============================================
@@ -94,30 +94,59 @@ local function findPlayerByPartialName(partial)
 end
 
 -- =============================================
--- [ 안티킥 (Anti-PCLD) 함수 - 추가됨 ]
+-- [ TP 함수 (raw 기반) ]
+-- =============================================
+local function TP(target)
+    local TCHAR = target.Character
+    local THRP = TCHAR and (TCHAR:FindFirstChild("Torso") or TCHAR:FindFirstChild("HumanoidRootPart"))
+    local localChar = plr.Character
+    local localHRP = localChar and localChar:FindFirstChild("HumanoidRootPart")
+
+    if TCHAR and THRP and localHRP then
+        local ping = plr:GetNetworkPing()
+        local offset = THRP.Position + (THRP.Velocity * (ping + 0.15))
+        localHRP.CFrame = CFrame.new(offset) * THRP.CFrame.Rotation
+        return true
+    end
+    return false
+end
+
+-- =============================================
+-- [ 안티킥 (Anti-PCLD) 함수 ]
 -- =============================================
 local AntiPCLDEnabled = false
 
 local function AntiPCLD()
     if not AntiPCLDEnabled then return end
     
-    local CF = plr.Character.Torso.CFrame
-    plr.Character.Torso.CFrame = CFrame.new(0,-99,9999)
+    local char = plr.Character
+    if not char then return end
+    
+    local torso = char:FindFirstChild("Torso")
+    if not torso then return end
+    
+    local CF = torso.CFrame
+    torso.CFrame = CFrame.new(0,-99,9999)
     task.wait(0.15)
-    plr.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Dead)
-    local char = plr.CharacterAdded:Wait()
-    char:WaitForChild("Humanoid"):ChangeState(Enum.HumanoidStateType.Dead)
-    char:WaitForChild("Torso").CFrame = CF
+    
+    local humanoid = char:FindFirstChild("Humanoid")
+    if humanoid then
+        humanoid:ChangeState(Enum.HumanoidStateType.Dead)
+    end
+    
+    local newChar = plr.CharacterAdded:Wait()
+    newChar:WaitForChild("Humanoid"):ChangeState(Enum.HumanoidStateType.Dead)
+    local newTorso = newChar:WaitForChild("Torso")
+    if newTorso then
+        newTorso.CFrame = CF
+    end
 end
 
--- PCLD 감지하여 자동으로 AntiPCLD 실행
 local function setupAntiPCLD()
     task.spawn(function()
         while AntiPCLDEnabled do
-            -- PCLD(PlayerCharacterLocationDetector) 감지
             for _, obj in ipairs(Workspace:GetChildren()) do
                 if obj.Name == "PlayerCharacterLocationDetector" and obj:IsA("BasePart") then
-                    -- PCLD가 내 근처에 있는지 확인 (10스터드 이내)
                     if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
                         local hrp = plr.Character.HumanoidRootPart
                         local dist = (obj.Position - hrp.Position).Magnitude
@@ -316,6 +345,15 @@ local function ExecuteKickGrabLoop()
             local rSpawn = SpawnToyRemote
             
             local distance = (myHrp.Position - targetHrp.Position).Magnitude
+            
+            -- 원거리에서는 TP 먼저!
+            if distance > 30 then
+                local ping = plr:GetNetworkPing()
+                local offset = targetHrp.Position + (targetHrp.Velocity * (ping + 0.15))
+                myHrp.CFrame = CFrame.new(offset) * targetHrp.CFrame.Rotation
+                task.wait(0.1)
+                distance = (myHrp.Position - targetHrp.Position).Magnitude
+            end
             
             -- A. 원거리 진입 (>20) -> 납치
             if distance > 20 and not hasClaimed and rOwner then
@@ -670,6 +708,7 @@ local blobLoopT = false
 local blobLoopThread = nil
 local antiMasslessEnabled = false
 local antiMasslessThread = nil
+local PPs = Workspace:FindFirstChild("PlotItems") and Workspace.PlotItems:FindFirstChild("PlayersInPlots")
 
 -- =============================================
 -- [ 블롭 관련 함수 ]
@@ -792,10 +831,61 @@ local function BlobMassless(blob, target, side)
 end
 
 -- =============================================
--- [ 블롭 킥 함수 ]
+-- [ 수정된 블롭 공격 함수 (원거리 TP 추가) ]
 -- =============================================
-local PPs = Workspace:FindFirstChild("PlotItems") and Workspace.PlotItems:FindFirstChild("PlayersInPlots")
+local function BlobAttackAll(mode)
+    UpdateCurrentBlobman()
+    if not currentBlobS then
+        Rayfield:Notify({Title = "블롭", Content = "블롭을 타고 있어야 합니다", Duration = 2})
+        return
+    end
+    
+    local count = 0
+    for _, targetName in ipairs(playersInLoop1V) do
+        local player = Players:FindFirstChild(targetName)
+        if player and player.Character then
+            local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                -- 원거리면 TP 먼저!
+                local myChar = plr.Character
+                local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
+                
+                if myHrp then
+                    local distance = (myHrp.Position - hrp.Position).Magnitude
+                    
+                    -- 30스터드 이상 떨어져 있으면 TP
+                    if distance > 30 then
+                        TP(player)
+                        task.wait(0.1)
+                    end
+                end
+                
+                if mode == "kill" then
+                    BlobGrab(currentBlobS, hrp, "Right")
+                    task.wait(0.1)
+                    BlobRelease(currentBlobS, hrp, "Right")
+                elseif mode == "massless" then
+                    BlobMassless(currentBlobS, hrp, "Right")
+                elseif mode == "grab" then
+                    BlobGrab(currentBlobS, hrp, "Right")
+                elseif mode == "release" then
+                    BlobRelease(currentBlobS, hrp, "Right")
+                elseif mode == "drop" then
+                    BlobDrop(currentBlobS, hrp, "Right")
+                end
+                count = count + 1
+            end
+        end
+        task.wait(0.1)
+    end
+    
+    local modeNames = {kill="킬", massless="매스리스", grab="잡기", release="놓기", drop="드롭"}
+    Rayfield:Notify({Title = "블롭 " .. modeNames[mode], Content = count .. "명 처리", Duration = 2})
+end
 
+-- =============================================
+-- [ 수정된 블롭 자동 킥 함수 (원거리 TP 추가) ]
+-- =============================================
 local function BlobLoopKick()
     UpdateCurrentBlobman()
     if not currentBlobS then
@@ -829,6 +919,19 @@ local function BlobLoopKick()
                 
                 local humanoid = character:FindFirstChildOfClass("Humanoid")
                 if humanoid and humanoid.Health > 0 then
+                    -- 원거리면 TP 먼저!
+                    local myChar = plr.Character
+                    local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
+                    
+                    if myHrp then
+                        local distance = (myHrp.Position - hrp.Position).Magnitude
+                        
+                        if distance > 30 then
+                            TP(player)
+                            task.wait(0.1)
+                        end
+                    end
+                    
                     local head = character:FindFirstChild("Head")
                     if head then
                         local tpRunning = true
@@ -884,45 +987,6 @@ local function BlobLoopKick()
             task.wait(0.3)
         end
     end)
-end
-
--- =============================================
--- [ 블롭 공격 함수 ]
--- =============================================
-local function BlobAttackAll(mode)
-    UpdateCurrentBlobman()
-    if not currentBlobS then
-        Rayfield:Notify({Title = "블롭", Content = "블롭을 타고 있어야 합니다", Duration = 2})
-        return
-    end
-    
-    local count = 0
-    for _, targetName in ipairs(playersInLoop1V) do
-        local player = Players:FindFirstChild(targetName)
-        if player and player.Character then
-            local hrp = player.Character:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                if mode == "kill" then
-                    BlobGrab(currentBlobS, hrp, "Right")
-                    task.wait(0.1)
-                    BlobRelease(currentBlobS, hrp, "Right")
-                elseif mode == "massless" then
-                    BlobMassless(currentBlobS, hrp, "Right")
-                elseif mode == "grab" then
-                    BlobGrab(currentBlobS, hrp, "Right")
-                elseif mode == "release" then
-                    BlobRelease(currentBlobS, hrp, "Right")
-                elseif mode == "drop" then
-                    BlobDrop(currentBlobS, hrp, "Right")
-                end
-                count = count + 1
-            end
-        end
-        task.wait(0.1)
-    end
-    
-    local modeNames = {kill="킬", massless="매스리스", grab="잡기", release="놓기", drop="드롭"}
-    Rayfield:Notify({Title = "블롭 " .. modeNames[mode], Content = count .. "명 처리", Duration = 2})
 end
 
 -- =============================================
@@ -1483,8 +1547,8 @@ end
 -- [ Rayfield UI 설정 ]
 -- =============================================
 local Window = Rayfield:CreateWindow({
-    Name = "FTAP 올인원 (안티킥 추가)",
-    LoadingTitle = "킥그랩 + 안티불 + 안티폭발 + 안티스티키 + 안티킥",
+    Name = "FTAP 올인원 (블롭 TP 추가)",
+    LoadingTitle = "킥그랩 + 안티불 + 안티폭발 + 안티스티키 + 안티킥 + 블롭TP",
     ConfigurationSaving = { Enabled = false }
 })
 
@@ -1541,7 +1605,6 @@ MainTab:CreateButton({
     Callback = PlotBarrierDelete
 })
 
--- 안티킥 토글 추가
 local AntiPCLDToggle = MainTab:CreateToggle({
     Name = "🛡️ Anti-Kick (PCLD 방어)",
     CurrentValue = false,
@@ -1578,7 +1641,7 @@ spawn(function()
 end)
 
 -- =============================================
--- [ 블롭 탭 ]
+-- [ 블롭 탭 (TP 추가됨) ]
 -- =============================================
 BlobTab:CreateSection("🦠 블롭 공격 대상")
 
@@ -1692,40 +1755,40 @@ BlobTab:CreateButton({
 BlobTab:CreateSection("⚔️ 블롭 공격 (List 대상)")
 
 BlobTab:CreateButton({
-    Name = "💀 블롭 킬 (Grab+Release)",
+    Name = "💀 블롭 킬 (Grab+Release) [TP 자동]",
     Callback = function() BlobAttackAll("kill") end
 })
 
 BlobTab:CreateButton({
-    Name = "⚡ 블롭 매스リス",
+    Name = "⚡ 블롭 매스리스 [TP 자동]",
     Callback = function() BlobAttackAll("massless") end
 })
 
 BlobTab:CreateButton({
-    Name = "🤚 블롭 잡기 (Grab)",
+    Name = "🤚 블롭 잡기 (Grab) [TP 자동]",
     Callback = function() BlobAttackAll("grab") end
 })
 
 BlobTab:CreateButton({
-    Name = "✋ 블롭 놓기 (Release)",
+    Name = "✋ 블롭 놓기 (Release) [TP 자동]",
     Callback = function() BlobAttackAll("release") end
 })
 
 BlobTab:CreateButton({
-    Name = "⬇️ 블롭 드롭 (Drop)",
+    Name = "⬇️ 블롭 드롭 (Drop) [TP 자동]",
     Callback = function() BlobAttackAll("drop") end
 })
 
 BlobTab:CreateSection("🔄 블롭 자동 킥")
 
 local BlobLoopKickToggle = BlobTab:CreateToggle({
-    Name = "🔄 블롭 자동 킥 (루프)",
+    Name = "🔄 블롭 자동 킥 (루프) [TP 자동]",
     CurrentValue = false,
     Callback = function(Value)
         blobLoopT = Value
         if blobLoopT then
             BlobLoopKick()
-            Rayfield:Notify({Title = "블롭 킥", Content = "자동 루프 시작", Duration = 2})
+            Rayfield:Notify({Title = "블롭 킥", Content = "자동 루프 시작 (원거리 TP)", Duration = 2})
         else
             if blobLoopThread then
                 task.cancel(blobLoopThread)
@@ -1934,7 +1997,7 @@ local KickGrabToggle = KickGrabTab:CreateToggle({
         KickGrabState.Looping = Value
         if Value then
             task.spawn(ExecuteKickGrabLoop)
-            Rayfield:Notify({Title = "킥그랩", Content = "활성화", Duration = 2})
+            Rayfield:Notify({Title = "킥그랩", Content = "활성화 (원거리 TP)", Duration = 2})
         else
             Rayfield:Notify({Title = "킥그랩", Content = "비활성화", Duration = 2})
         end
@@ -2157,6 +2220,6 @@ bringRayfieldToFront()
 
 Rayfield:Notify({
     Title = "🚀 로드 완료",
-    Content = "안티킥(PCLD 방어) 추가됨 | 메인 탭에서 활성화",
+    Content = "블롭 TP 추가 | 원거리에서도 집 안 사람 잡기 가능",
     Duration = 5
 })
