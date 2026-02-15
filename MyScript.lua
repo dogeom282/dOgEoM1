@@ -1,4 +1,4 @@
--- FTAP (Fling Things and People) 올인원 스크립트 (모든 기능 통합)
+-- FTAP (Fling Things and People) 올인원 스크립트 (모든 기능 통합 + 안티킥)
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 -- =============================================
@@ -94,7 +94,47 @@ local function findPlayerByPartialName(partial)
 end
 
 -- =============================================
--- [ 안티 스티키 아우라 함수 (추가) ]
+-- [ 안티킥 (Anti-PCLD) 함수 - 추가됨 ]
+-- =============================================
+local AntiPCLDEnabled = false
+
+local function AntiPCLD()
+    if not AntiPCLDEnabled then return end
+    
+    local CF = plr.Character.Torso.CFrame
+    plr.Character.Torso.CFrame = CFrame.new(0,-99,9999)
+    task.wait(0.15)
+    plr.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Dead)
+    local char = plr.CharacterAdded:Wait()
+    char:WaitForChild("Humanoid"):ChangeState(Enum.HumanoidStateType.Dead)
+    char:WaitForChild("Torso").CFrame = CF
+end
+
+-- PCLD 감지하여 자동으로 AntiPCLD 실행
+local function setupAntiPCLD()
+    task.spawn(function()
+        while AntiPCLDEnabled do
+            -- PCLD(PlayerCharacterLocationDetector) 감지
+            for _, obj in ipairs(Workspace:GetChildren()) do
+                if obj.Name == "PlayerCharacterLocationDetector" and obj:IsA("BasePart") then
+                    -- PCLD가 내 근처에 있는지 확인 (10스터드 이내)
+                    if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                        local hrp = plr.Character.HumanoidRootPart
+                        local dist = (obj.Position - hrp.Position).Magnitude
+                        if dist < 10 then
+                            AntiPCLD()
+                            break
+                        end
+                    end
+                end
+            end
+            task.wait(0.5)
+        end
+    end)
+end
+
+-- =============================================
+-- [ 안티 스티키 아우라 함수 ]
 -- =============================================
 local AntiStickyAuraT = false
 local AntiStickyAuraThread = nil
@@ -143,7 +183,7 @@ local function AntiStickyAuraF()
 end
 
 -- =============================================
--- [ 안티 불 함수 (추가) ]
+-- [ 안티 불 함수 ]
 -- =============================================
 local AntiBurnV = false
 local AntiBurnThread = nil
@@ -192,7 +232,7 @@ local function AntiBurn()
 end
 
 -- =============================================
--- [ 안티 폭발 함수 (추가) ]
+-- [ 안티 폭발 함수 ]
 -- =============================================
 local AntiExplosionT = false
 local AntiExplosionC = nil
@@ -1443,8 +1483,8 @@ end
 -- [ Rayfield UI 설정 ]
 -- =============================================
 local Window = Rayfield:CreateWindow({
-    Name = "FTAP 올인원 (모든 기능 완전판)",
-    LoadingTitle = "킥그랩 + 안티불 + 안티폭발 + 안티스티키",
+    Name = "FTAP 올인원 (안티킥 추가)",
+    LoadingTitle = "킥그랩 + 안티불 + 안티폭발 + 안티스티키 + 안티킥",
     ConfigurationSaving = { Enabled = false }
 })
 
@@ -1499,6 +1539,21 @@ local BarrierNoclipToggle = MainTab:CreateToggle({
 MainTab:CreateButton({
     Name = "💥 집 베리어 부수기",
     Callback = PlotBarrierDelete
+})
+
+-- 안티킥 토글 추가
+local AntiPCLDToggle = MainTab:CreateToggle({
+    Name = "🛡️ Anti-Kick (PCLD 방어)",
+    CurrentValue = false,
+    Callback = function(Value)
+        AntiPCLDEnabled = Value
+        if Value then
+            setupAntiPCLD()
+            Rayfield:Notify({Title = "안티킥", Content = "활성화 - PCLD 감지 시 자동 방어", Duration = 2})
+        else
+            Rayfield:Notify({Title = "안티킥", Content = "비활성화", Duration = 2})
+        end
+    end
 })
 
 MainTab:CreateSection("📊 상태")
@@ -1642,7 +1697,7 @@ BlobTab:CreateButton({
 })
 
 BlobTab:CreateButton({
-    Name = "⚡ 블롭 매스리스",
+    Name = "⚡ 블롭 매스リス",
     Callback = function() BlobAttackAll("massless") end
 })
 
@@ -1722,7 +1777,7 @@ local LoopGrabToggle = GrabTab:CreateToggle({
 })
 
 -- =============================================
--- [ 아우라 탭 (새로 추가) ]
+-- [ 아우라 탭 ]
 -- =============================================
 AuraTab:CreateSection("🌀 안티 스티키 아우라")
 
@@ -1742,17 +1797,9 @@ AuraTab:CreateParagraph({
 })
 
 -- =============================================
--- [ 보안 탭 (안티불/안티폭발 추가) ]
+-- [ 보안 탭 ]
 -- =============================================
 SecurityTab:CreateSection("🔰 방어 설정")
-
-local AntiKickToggle = SecurityTab:CreateToggle({
-    Name = "Anti-Kick",
-    CurrentValue = false,
-    Callback = function(Value)
-        -- Anti-Kick 기능
-    end
-})
 
 local AntiVoidToggle = SecurityTab:CreateToggle({
     Name = "Anti-Void",
@@ -1777,7 +1824,6 @@ local AntiMasslessToggle = SecurityTab:CreateToggle({
     end
 })
 
--- 안티 불 추가
 local AntiBurnToggle = SecurityTab:CreateToggle({
     Name = "🔥 Anti-Burn",
     CurrentValue = false,
@@ -1788,7 +1834,6 @@ local AntiBurnToggle = SecurityTab:CreateToggle({
     end
 })
 
--- 안티 폭발 추가
 local AntiExplodeToggle = SecurityTab:CreateToggle({
     Name = "💥 Anti-Explosion",
     CurrentValue = false,
@@ -2112,6 +2157,6 @@ bringRayfieldToFront()
 
 Rayfield:Notify({
     Title = "🚀 로드 완료",
-    Content = "모든 기능 통합 완료 | 아우라/보안 탭 확인",
+    Content = "안티킥(PCLD 방어) 추가됨 | 메인 탭에서 활성화",
     Duration = 5
 })
