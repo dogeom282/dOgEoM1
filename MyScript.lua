@@ -1,47 +1,129 @@
--- FTAP (Fling Things and People) 올인원 스크립트 (PC용) - 방어 기능 통합
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+-- FTAP 올인원 스크립트 (PC/모바일 호환) - 방어 기능 통합
 
 -- =============================================
--- [ Infinite Yield 로드 ]
+-- [ Rayfield UI 로드 (안정적인 버전) ]
 -- =============================================
+local RayfieldLoaded = false
+local Rayfield
+
 pcall(function()
-    loadstring(game:HttpGet('https://cdn.jsdelivr.net/gh/EdgeIY/infiniteyield@master/source'))()
-    task.wait(1)
-    if _G and _G.ToggleUI then
-        _G.ToggleUI = false
+    Rayfield = loadstring(game:HttpGet('https://raw.githubusercontent.com/SiriusSoftwareLtd/Rayfield/main/source'))()
+    if Rayfield then
+        RayfieldLoaded = true
     end
-    print("✅ Infinite Yield 로드 완료 (UI 숨김)")
 end)
 
--- =============================================
--- [ Rayfield UI를 항상 최상단으로 유지 ]
--- =============================================
-local function bringRayfieldToFront()
-    task.spawn(function()
-        while task.wait(0.5) do
-            for _, gui in ipairs(game:GetService("CoreGui"):GetChildren()) do
-                if gui:IsA("ScreenGui") and (gui.Name:find("Rayfield") or gui.Name:find("RayField")) then
-                    gui.DisplayOrder = 999999
-                    for _, child in ipairs(gui:GetDescendants()) do
-                        if child:IsA("Frame") or child:IsA("ScrollingFrame") or child:IsA("TextButton") then
-                            child.ZIndex = 999999
-                        end
-                    end
-                end
-            end
+if not RayfieldLoaded then
+    -- 백업 링크
+    pcall(function()
+        Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+        if Rayfield then
+            RayfieldLoaded = true
         end
     end)
 end
-bringRayfieldToFront()
+
+if not RayfieldLoaded then
+    -- Rayfield 로드 실패 시 기본 알림
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "오류",
+        Text = "Rayfield를 로드할 수 없습니다. 인터넷 연결을 확인하세요.",
+        Duration = 5
+    })
+    return
+end
+
+-- =============================================
+-- [ 서비스 로드 ]
+-- =============================================
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+local CoreGui = game:GetService("CoreGui")
+local StarterGui = game:GetService("StarterGui")
+local VirtualUser = game:GetService("VirtualUser")
+
+-- 로컬 플레이어
+local plr = Players.LocalPlayer
+local rs = ReplicatedStorage
+
+-- 인벤토리 찾기 (여러 경우의 수 처리)
+local function getInv()
+    local inv = Workspace:FindFirstChild(plr.Name.."SpawnedInToys")
+    if not inv then
+        inv = Workspace:FindFirstChild("SpawnedInToys")
+    end
+    return inv
+end
+local inv = getInv()
+
+-- Plots 찾기
+local Plots = Workspace:FindFirstChild("Plots")
+if not Plots then
+    Plots = Workspace:WaitForChild("Plots", 5)
+end
+
+-- PlotItems/PlayersInPlots 찾기
+local PPs = nil
+local plotItems = Workspace:FindFirstChild("PlotItems")
+if plotItems then
+    PPs = plotItems:FindFirstChild("PlayersInPlots")
+end
+
+-- =============================================
+-- [ 리모트 이벤트 안전하게 찾기 ]
+-- =============================================
+local GrabEvents = rs:FindFirstChild("GrabEvents")
+local CharacterEvents = rs:FindFirstChild("CharacterEvents")
+local PlayerEvents = rs:FindFirstChild("PlayerEvents")
+local MenuToys = rs:FindFirstChild("MenuToys")
+local BombEvents = rs:FindFirstChild("BombEvents")
+
+-- 각 리모트를 nil 체크와 함께 찾기
+local SetNetworkOwner
+local DestroyGrabLine
+local CreateGrabLine
+local ExtendGrabLine
+local Struggle
+local RagdollRemote
+local SpawnToyRemote
+local DestroyToy
+local StickyPartEvent
+local BombExplode
+
+if GrabEvents then
+    SetNetworkOwner = GrabEvents:FindFirstChild("SetNetworkOwner") or GrabEvents:FindFirstChild("SetOwner")
+    DestroyGrabLine = GrabEvents:FindFirstChild("DestroyGrabLine") or GrabEvents:FindFirstChild("DestroyLine")
+    CreateGrabLine = GrabEvents:FindFirstChild("CreateGrabLine") or GrabEvents:FindFirstChild("CreateGrab")
+    ExtendGrabLine = GrabEvents:FindFirstChild("ExtendGrabLine") or GrabEvents:FindFirstChild("ExtendGrab")
+end
+
+if CharacterEvents then
+    Struggle = CharacterEvents:FindFirstChild("Struggle") or CharacterEvents:FindFirstChild("StruggleRemote")
+    RagdollRemote = CharacterEvents:FindFirstChild("RagdollRemote") or CharacterEvents:FindFirstChild("Ragdoll")
+end
+
+if MenuToys then
+    SpawnToyRemote = MenuToys:FindFirstChild("SpawnToyRemoteFunction") or MenuToys:FindFirstChild("SpawnToy")
+    DestroyToy = MenuToys:FindFirstChild("DestroyToy") or MenuToys:FindFirstChild("DestroyToyRemote")
+end
+
+if PlayerEvents then
+    StickyPartEvent = PlayerEvents:FindFirstChild("StickyPartEvent") or PlayerEvents:FindFirstChild("StickyPart")
+end
+
+if BombEvents then
+    BombExplode = BombEvents:FindFirstChild("BombExplode") or BombEvents:FindFirstChild("Explode")
+end
 
 -- =============================================
 -- [ PC용 TP 기능 (Z키) ]
 -- =============================================
-local UserInputService = game:GetService("UserInputService")
-
 local function LookTeleport()
     local cam = workspace.CurrentCamera
-    local char = game.Players.LocalPlayer.Character
+    local char = plr.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     
     if hrp and cam then
@@ -66,12 +148,14 @@ local function LookTeleport()
     return false
 end
 
--- Z키 입력 감지
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    if input.KeyCode == Enum.KeyCode.Z then
-        LookTeleport()
-    end
+-- Z키 입력 감지 (안전하게)
+pcall(function()
+    UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+        if input.KeyCode == Enum.KeyCode.Z then
+            LookTeleport()
+        end
+    end)
 end)
 
 -- =============================================
@@ -80,8 +164,9 @@ end)
 local function createTPButton()
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "TPButton"
-    screenGui.Parent = game:GetService("CoreGui")
+    screenGui.Parent = CoreGui
     screenGui.DisplayOrder = 999998
+    screenGui.ResetOnSpawn = false
 
     local button = Instance.new("TextButton")
     button.Size = UDim2.new(0, 70, 0, 70)
@@ -96,16 +181,1242 @@ local function createTPButton()
     local circle = Instance.new("UICorner", button)
     circle.CornerRadius = UDim.new(1, 0)
 
-    local shadow = Instance.new("ImageLabel")
-    shadow.Size = UDim2.new(1, 8, 1, 8)
-    shadow.Position = UDim2.new(0, -4, 0, 4)
-    shadow.BackgroundTransparency = 1
-    shadow.Image = "rbxasset://textures/ui/White/White_9slice_center.png"
-    shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
-    shadow.ImageTransparency = 0.6
-    shadow.ZIndex = -1
-    shadow.Parent = button
+    button.MouseButton1Click:Connect(LookTeleport)
 
+    -- 드래그 기능
+    local dragging = false
+    local dragStart
+    local startPos
+
+    button.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = button.Position
+        end
+    end)
+
+    button.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.Touch then
+            local delta = input.Position - dragStart
+            button.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+
+    button.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+end
+
+-- =============================================
+-- [ 자동완성 함수 ]
+-- =============================================
+local function findPlayerByPartialName(partial)
+    if not partial or partial == "" then return nil end
+    partial = partial:lower()
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= plr then
+            if player.Name:lower():find(partial) or player.DisplayName:lower():find(partial) then
+                return player
+            end
+        end
+    end
+    return nil
+end
+
+-- =============================================
+-- [ TP 함수 ]
+-- =============================================
+local function TP(target)
+    local TCHAR = target.Character
+    local THRP = TCHAR and (TCHAR:FindFirstChild("Torso") or TCHAR:FindFirstChild("HumanoidRootPart"))
+    local localChar = plr.Character
+    local localHRP = localChar and localChar:FindFirstChild("HumanoidRootPart")
+
+    if TCHAR and THRP and localHRP then
+        local ping = plr:GetNetworkPing()
+        local offset = THRP.Position + (THRP.Velocity * (ping + 0.15))
+        localHRP.CFrame = CFrame.new(offset) * THRP.CFrame.Rotation
+        return true
+    end
+    return false
+end
+
+-- =============================================
+-- [ 안티보이드 함수 ]
+-- =============================================
+local AntiVoidT = true
+
+local function AntiVoidF(enable)
+    if enable then
+        workspace.FallenPartsDestroyHeight = -50000
+        print("✅ 안티보이드 활성화 (높이 -50000)")
+    else
+        workspace.FallenPartsDestroyHeight = -100
+        print("🔴 안티보이드 비활성화")
+    end
+end
+
+-- =============================================
+-- [ 안티킥 (Anti-PCLD) 함수 ]
+-- =============================================
+local AntiPCLDEnabled = false
+
+local function AntiPCLD()
+    if not AntiPCLDEnabled then return end
+    
+    local char = plr.Character
+    if not char then return end
+    
+    local torso = char:FindFirstChild("Torso")
+    if not torso then return end
+    
+    local CF = torso.CFrame
+    torso.CFrame = CFrame.new(0,-99,9999)
+    task.wait(0.15)
+    
+    local humanoid = char:FindFirstChild("Humanoid")
+    if humanoid then
+        humanoid:ChangeState(Enum.HumanoidStateType.Dead)
+    end
+    
+    local newChar = plr.CharacterAdded:Wait()
+    newChar:WaitForChild("Humanoid"):ChangeState(Enum.HumanoidStateType.Dead)
+    local newTorso = newChar:WaitForChild("Torso")
+    if newTorso then
+        newTorso.CFrame = CF
+    end
+end
+
+local function setupAntiPCLD()
+    task.spawn(function()
+        while AntiPCLDEnabled do
+            for _, obj in ipairs(workspace:GetChildren()) do
+                if obj.Name == "PlayerCharacterLocationDetector" and obj:IsA("BasePart") then
+                    if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                        local hrp = plr.Character.HumanoidRootPart
+                        local dist = (obj.Position - hrp.Position).Magnitude
+                        if dist < 10 then
+                            AntiPCLD()
+                            break
+                        end
+                    end
+                end
+            end
+            task.wait(0.5)
+        end
+    end)
+end
+
+-- =============================================
+-- [ 안티 스티키 아우라 함수 ]
+-- =============================================
+local AntiStickyAuraT = false
+local AntiStickyAuraThread = nil
+
+local function AntiStickyAuraF()
+    if AntiStickyAuraThread then
+        task.cancel(AntiStickyAuraThread)
+        AntiStickyAuraThread = nil
+    end
+
+    if not AntiStickyAuraT then return end
+
+    local targetNames = { 
+        "NinjaKunai", "NinjaShuriken", "NinjaKatana", 
+        "ToolCleaver", "ToolDiggingForkRusty", 
+        "ToolPencil", "ToolPickaxe" 
+    }
+
+    AntiStickyAuraThread = task.spawn(function()
+        while AntiStickyAuraT do
+            local character = plr.Character
+            if character then
+                local hrp = character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    for _, folder in ipairs(workspace:GetChildren()) do
+                        if folder:IsA("Folder") and folder.Name:match("SpawnedInToys$") and folder.Name ~= (plr.Name .. "SpawnedInToys") then
+                            for _, item in ipairs(folder:GetChildren()) do
+                                for _, targetName in ipairs(targetNames) do
+                                    if item.Name == targetName and item:FindFirstChild("StickyPart") then
+                                        local sticky = item.StickyPart
+                                        local basePart = item.PrimaryPart or sticky
+                                        local dist = (basePart.Position - hrp.Position).Magnitude
+                                        if dist <= 30 and SetNetworkOwner then
+                                            pcall(function() SetNetworkOwner:FireServer(sticky, sticky.CFrame) end)
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+            task.wait(0.03)
+        end
+    end)
+end
+
+-- =============================================
+-- [ 안티 불 함수 (raw(2).txt에서 가져옴) ]
+-- =============================================
+local AntiBurnV = false
+local AntiBurnThread = nil
+
+local function AntiBurn()
+    if AntiBurnThread then
+        task.cancel(AntiBurnThread)
+        AntiBurnThread = nil
+    end
+
+    if not AntiBurnV then return end
+
+    AntiBurnThread = task.spawn(function()
+        -- ExtinguishPart 찾기 (여러 경로 시도)
+        local EP = nil
+        
+        -- Map/Hole/PoisonSmallHole 경로 시도
+        local map = workspace:FindFirstChild("Map")
+        if map then
+            local hole = map:FindFirstChild("Hole")
+            if hole then
+                local poisonHole = hole:FindFirstChild("PoisonSmallHole")
+                if poisonHole then
+                    EP = poisonHole:FindFirstChild("ExtinguishPart")
+                end
+            end
+        end
+        
+        -- 없으면 전체 검색
+        if not EP then
+            for _, child in ipairs(workspace:GetDescendants()) do
+                if child.Name == "ExtinguishPart" and child:IsA("BasePart") then
+                    EP = child
+                    break
+                end
+            end
+        end
+        
+        if not EP then 
+            Rayfield:Notify({Title = "안티불", Content = "ExtinguishPart를 찾을 수 없음", Duration = 2})
+            return 
+        end
+        
+        -- 원래 값 저장
+        local originalSize = EP.Size
+        local originalCFrame = EP.CFrame
+        local originalTransparency = EP.Transparency
+        local originalCastShadow = EP.CastShadow
+        
+        while AntiBurnV do
+            local char = plr.Character
+            if char then
+                local head = char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
+                if head then
+                    EP.Transparency = 1
+                    EP.CastShadow = false
+                    EP.Size = Vector3.new(0, 0, 0)
+                    EP.CFrame = head.CFrame * CFrame.new(0, 100, 0)
+                end
+            end
+            task.wait(0.1)
+        end
+        
+        -- 복원
+        EP.Size = originalSize
+        EP.CFrame = originalCFrame
+        EP.Transparency = originalTransparency
+        EP.CastShadow = originalCastShadow
+    end)
+end
+
+-- =============================================
+-- [ 안티 폭발 함수 (raw(2).txt에서 가져옴) ]
+-- =============================================
+local AntiExplosionT = false
+local AntiExplosionC = nil
+
+local function AntiExplosionF()
+    if AntiExplosionC then
+        AntiExplosionC:Disconnect()
+        AntiExplosionC = nil
+    end
+
+    if not AntiExplosionT then return end
+
+    local char = plr.Character
+    if not char then return end
+
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    local hum = char:FindFirstChild("Humanoid")
+    if not hrp or not hum then return end
+
+    AntiExplosionC = workspace.ChildAdded:Connect(function(model)
+        if not char or not hrp or not hum or not AntiExplosionT then return end
+        
+        if model:IsA("BasePart") and (model.Position - hrp.Position).Magnitude <= 25 then
+            if hum.SeatPart ~= nil then
+                hrp.Anchored = true
+                task.wait(0.03)
+                hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+                hrp.Anchored = false
+            else
+                hrp.Anchored = true
+                task.wait(0.05)
+                hum:ChangeState(Enum.HumanoidStateType.Running)
+                hrp.Anchored = false
+                hum.AutoRotate = true
+            end
+        end
+    end)
+end
+
+-- =============================================
+-- [ 안티 페인트 함수 (raw(2).txt에서 가져옴) ]
+-- =============================================
+local AntiPaintT = false
+local AntiPaintThread = nil
+
+local function antiPaintF(state)
+    if AntiPaintThread then
+        task.cancel(AntiPaintThread)
+        AntiPaintThread = nil
+    end
+
+    if state then
+        AntiPaintThread = task.spawn(function()
+            while AntiPaintT do
+                local char = plr.Character
+                if char then
+                    local parts = {
+                        "Head",
+                        "HumanoidRootPart",
+                        "Torso",
+                        "Left Arm",
+                        "Right Arm",
+                        "Left Leg",
+                        "Right Leg"
+                    }
+                    for _, partName in ipairs(parts) do
+                        local part = char:FindFirstChild(partName)
+                        if part and part:IsA("BasePart") then
+                            part.CanTouch = false
+                        end
+                    end
+                end
+                task.wait(0.1)
+            end
+        end)
+    end
+end
+
+-- =============================================
+-- [ 킥그랩 관련 변수 ]
+-- =============================================
+local KickGrabState = {
+    Target = nil,
+    Looping = false,
+    AutoRagdoll = false,
+    Mode = "Camera",
+    DetentionDist = 19,
+    SnowBallLooping = false
+}
+
+-- =============================================
+-- [ 가장 가까운 플레이어 찾기 ]
+-- =============================================
+local function getClosestPlayer(targetPart)
+    local closest, distance = nil, math.huge
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= plr and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local mag = (targetPart.Position - player.Character.HumanoidRootPart.Position).Magnitude
+            if mag < distance then
+                distance = mag
+                closest = player
+            end
+        end
+    end
+    return closest
+end
+
+-- =============================================
+-- [ 원본 루프그랩 함수 ]
+-- =============================================
+local AntiStruggleGrabT = false
+local antiStruggleThread = nil
+
+local function AntiStruggleGrabF()
+    if antiStruggleThread then
+        task.cancel(antiStruggleThread)
+        antiStruggleThread = nil
+    end
+
+    if not AntiStruggleGrabT then return end
+
+    antiStruggleThread = task.spawn(function()
+        while AntiStruggleGrabT do
+            local grabParts = workspace:FindFirstChild("GrabParts")
+            if not grabParts then
+                task.wait()
+                continue
+            end
+
+            local gp = grabParts:FindFirstChild("GrabPart")
+            local weld = gp and gp:FindFirstChildOfClass("WeldConstraint")
+            local part1 = weld and weld.Part1
+
+            if part1 then
+                local ownerPlayer = nil
+                for _, pl in ipairs(Players:GetPlayers()) do
+                    if pl.Character and part1:IsDescendantOf(pl.Character) then
+                        ownerPlayer = pl
+                        break
+                    end
+                end
+
+                while AntiStruggleGrabT and workspace:FindFirstChild("GrabParts") do
+                    if ownerPlayer then
+                        local tgtTorso = ownerPlayer.Character and ownerPlayer.Character:FindFirstChild("HumanoidRootPart")
+                        local myTorso = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+
+                        if tgtTorso and myTorso and SetNetworkOwner then
+                            pcall(function()
+                                SetNetworkOwner:FireServer(tgtTorso, CFrame.lookAt(myTorso.Position, tgtTorso.Position))
+                            end)
+                        end
+                    else
+                        if part1 and part1.Parent and SetNetworkOwner then
+                            local myTorso = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+                            if myTorso then
+                                pcall(function()
+                                    SetNetworkOwner:FireServer(part1, CFrame.lookAt(myTorso.Position, part1.Position))
+                                end)
+                            end
+                        end
+                    end
+                    task.wait()
+                end
+            end
+            task.wait()
+        end
+    end)
+end
+
+-- =============================================
+-- [ 초고속 안티그랩 함수 ]
+-- =============================================
+local antiGrabConn = nil
+local isAntiGrabEnabled = false
+
+local function AntiGrabF(enable)
+    if antiGrabConn then
+        antiGrabConn:Disconnect()
+        antiGrabConn = nil
+    end
+
+    if not enable then return end
+
+    antiGrabConn = RunService.RenderStepped:Connect(function()
+        local char = plr.Character
+        if not char then return end
+
+        local isHeld = plr:FindFirstChild("IsHeld")
+        if not isHeld then return end
+
+        local head = char:FindFirstChild("Head")
+        local POR = head and head:FindFirstChild("PartOwner")
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+
+        if isHeld.Value == true or (POR and POR.Value ~= "") then
+            if Struggle then pcall(function() Struggle:FireServer() end) end
+            
+            local grabParts = workspace:FindFirstChild("GrabParts")
+            if grabParts then
+                for _, part in ipairs(grabParts:GetChildren()) do
+                    if part.Name == "GrabPart" then
+                        local weld = part:FindFirstChildOfClass("WeldConstraint")
+                        if weld and weld.Part1 and weld.Part1:IsDescendantOf(char) and DestroyGrabLine then
+                            pcall(function() DestroyGrabLine:FireServer(weld.Part1) end)
+                            if hrp and SetNetworkOwner then 
+                                pcall(function() SetNetworkOwner:FireServer(hrp) end) 
+                            end
+                            break
+                        end
+                    end
+                end
+            end
+        end
+    end)
+end
+
+-- =============================================
+-- [ 즉시 해제 함수 ]
+-- =============================================
+local function ManualRelease()
+    local char = plr.Character
+    if not char then 
+        Rayfield:Notify({Title = "오류", Content = "캐릭터 없음", Duration = 2})
+        return 
+    end
+    
+    if DestroyGrabLine then
+        local grabParts = workspace:FindFirstChild("GrabParts")
+        if grabParts then
+            for _, part in ipairs(grabParts:GetChildren()) do
+                if part.Name == "GrabPart" then
+                    local weld = part:FindFirstChildOfClass("WeldConstraint")
+                    if weld and weld.Part1 and weld.Part1:IsDescendantOf(char) then
+                        pcall(function() DestroyGrabLine:FireServer(weld.Part1) end)
+                    end
+                end
+            end
+        end
+    end
+    
+    if SetNetworkOwner then
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if hrp then pcall(function() SetNetworkOwner:FireServer(hrp) end) end
+    end
+    
+    if Struggle then pcall(function() Struggle:FireServer() end) end
+    
+    Rayfield:Notify({Title = "해제 완료", Duration = 2})
+end
+
+-- =============================================
+-- [ 블롭 관련 변수 ]
+-- =============================================
+local playersInLoop1V = {}
+local currentBlobS = nil
+local blobmanInstanceS = nil
+local sitJumpT = false
+local AutoGucciT = false
+local ragdollLoopD = false
+local blobLoopT = false
+local blobLoopThread = nil
+
+-- =============================================
+-- [ 블롭 관련 함수 ]
+-- =============================================
+local function UpdateCurrentBlobman()
+    local char = plr.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    for _, blobs in workspace:GetDescendants() do
+        if blobs.Name ~= "CreatureBlobman" then continue end
+        local seat = blobs:FindFirstChild("VehicleSeat")
+        if not seat then continue end
+        local weld = seat:FindFirstChild("SeatWeld")
+        if not weld then continue end
+        if weld.Part1 == hrp then
+            currentBlobS = blobs
+            break
+        end
+    end
+end
+
+local function spawnBlobmanF()
+    local char = plr.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    inv = getInv()
+    local blob = inv and inv:FindFirstChild("CreatureBlobman")
+    if blob then
+        blobmanInstanceS = blob
+        return
+    end
+
+    if SpawnToyRemote then
+        task.spawn(function()
+            pcall(function()
+                SpawnToyRemote:InvokeServer("CreatureBlobman", hrp.CFrame, Vector3.new(0, 0, 0))
+            end)
+        end)
+
+        local tries = 0
+        repeat
+            task.wait(0.2)
+            inv = getInv()
+            blobmanInstanceS = inv and inv:FindFirstChild("CreatureBlobman")
+            tries = tries + 1
+        until blobmanInstanceS or tries > 25
+    end
+end
+
+-- =============================================
+-- [ PCLD 보이게 하는 함수 ]
+-- =============================================
+local pcldViewEnabled = false
+local pcldBoxes = {}
+
+local function togglePcldView(enable)
+    if enable then
+        for _, box in pairs(pcldBoxes) do
+            pcall(function() box:Destroy() end)
+        end
+        pcldBoxes = {}
+        
+        for _, obj in ipairs(workspace:GetChildren()) do
+            if obj.Name == "PlayerCharacterLocationDetector" and obj:IsA("BasePart") then
+                local box = Instance.new("SelectionBox")
+                box.Adornee = obj
+                box.LineThickness = 0.05
+                box.Color3 = Color3.fromRGB(255, 0, 0)
+                box.SurfaceColor3 = Color3.fromRGB(255, 255, 255)
+                box.SurfaceTransparency = 0.5
+                box.Visible = true
+                box.Parent = obj
+                pcldBoxes[obj] = box
+            end
+        end
+        
+        workspace.DescendantAdded:Connect(function(obj)
+            if pcldViewEnabled and obj.Name == "PlayerCharacterLocationDetector" and obj:IsA("BasePart") then
+                task.wait(0.1)
+                local box = Instance.new("SelectionBox")
+                box.Adornee = obj
+                box.LineThickness = 0.05
+                box.Color3 = Color3.fromRGB(255, 0, 0)
+                box.SurfaceColor3 = Color3.fromRGB(255, 255, 255)
+                box.SurfaceTransparency = 0.5
+                box.Visible = true
+                box.Parent = obj
+                pcldBoxes[obj] = box
+            end
+        end)
+    else
+        for _, box in pairs(pcldBoxes) do
+            pcall(function() box:Destroy() end)
+        end
+        pcldBoxes = {}
+    end
+end
+
+-- =============================================
+-- [ Barrier Noclip 함수 ]
+-- =============================================
+local BarrierCanCollideT = false
+
+local function BarrierCanCollideF()
+    if not Plots then return end
+    
+    if BarrierCanCollideT then
+        for i = 1, 5 do
+            local plot = Plots:FindFirstChild("Plot"..i)
+            if plot and plot:FindFirstChild("Barrier") then
+                for _, barrier in ipairs(plot.Barrier:GetChildren()) do
+                    if barrier:IsA("BasePart") then
+                        barrier.CanCollide = false
+                    end
+                end
+            end
+        end
+    else
+        for i = 1, 5 do
+            local plot = Plots:FindFirstChild("Plot"..i)
+            if plot and plot:FindFirstChild("Barrier") then
+                for _, barrier in ipairs(plot.Barrier:GetChildren()) do
+                    if barrier:IsA("BasePart") then
+                        barrier.CanCollide = true
+                    end
+                end
+            end
+        end
+    end
+end
+
+-- =============================================
+-- [ Plot Barrier Delete 함수 ]
+-- =============================================
+local PBDrun = false
+
+local function PlotBarrierDelete()
+    if PBDrun then 
+        Rayfield:Notify({Title = "베리어", Content = "이미 실행 중", Duration = 2})
+        return 
+    end
+    PBDrun = true
+
+    local char = plr.Character
+    if not char then 
+        PBDrun = false 
+        Rayfield:Notify({Title = "오류", Content = "캐릭터 없음", Duration = 2})
+        return 
+    end
+
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then 
+        PBDrun = false 
+        Rayfield:Notify({Title = "오류", Content = "HumanoidRootPart 없음", Duration = 2})
+        return 
+    end
+
+    if not Plots then
+        PBDrun = false
+        Rayfield:Notify({Title = "오류", Content = "Plots를 찾을 수 없음", Duration = 2})
+        return
+    end
+
+    local metal = nil
+    local plot1 = Plots:FindFirstChild("Plot1")
+    if plot1 then
+        local teslaCoil = plot1:FindFirstChild("TeslaCoil")
+        if teslaCoil then
+            metal = teslaCoil:FindFirstChild("Metal")
+        end
+    end
+
+    if not metal then
+        PBDrun = false
+        Rayfield:Notify({Title = "오류", Content = "Metal 파트를 찾을 수 없음", Duration = 2})
+        return
+    end
+
+    local TP = metal.CFrame
+    local OCF = hrp.CFrame
+
+    if SpawnToyRemote then
+        task.spawn(function()
+            pcall(function()
+                SpawnToyRemote:InvokeServer("FoodBread", hrp.CFrame, Vector3.new(0,0,0))
+            end)
+        end)
+    end
+
+    task.wait(0.2)
+
+    inv = getInv()
+    local foodBread = inv and inv:FindFirstChild("FoodBread")
+    if not foodBread then 
+        PBDrun = false 
+        Rayfield:Notify({Title = "오류", Content = "FoodBread 생성 실패", Duration = 2})
+        return 
+    end
+
+    if foodBread then
+        task.spawn(function()
+            local holdPart = foodBread:FindFirstChild("HoldPart")
+            if holdPart then
+                local holdRemote = holdPart:FindFirstChild("HoldItemRemoteFunction")
+                if holdRemote then
+                    pcall(function()
+                        holdRemote:InvokeServer(foodBread, char)
+                    end)
+                end
+            end
+        end)
+    end
+
+    task.wait(0.1)
+    hrp.CFrame = TP
+    task.wait(0.17)
+
+    if foodBread and DestroyToy then
+        pcall(function()
+            DestroyToy:FireServer(foodBread)
+        end)
+    end
+
+    hrp.CFrame = OCF
+    task.wait(0.4)
+
+    PBDrun = false
+    Rayfield:Notify({Title = "✅ 베리어", Content = "부수기 완료", Duration = 2})
+end
+
+-- =============================================
+-- [ 상대 팔다리 제거 함수 ]
+-- =============================================
+local selectedDeletePart = "Arm/Leg"
+
+local function teleportParts(player, partName)
+    local character = player.Character
+    if not character then return end
+    
+    local targetParts = {}
+
+    if partName == "Arm/Leg" then
+        targetParts = {
+            character:FindFirstChild("Left Leg"),
+            character:FindFirstChild("Right Leg"),
+            character:FindFirstChild("Left Arm"),
+            character:FindFirstChild("Right Arm")
+        }
+    elseif partName == "Legs" then
+        targetParts = {
+            character:FindFirstChild("Left Leg"),
+            character:FindFirstChild("Right Leg")
+        }
+    elseif partName == "Arms" then
+        targetParts = {
+            character:FindFirstChild("Left Arm"),
+            character:FindFirstChild("Right Arm")
+        }
+    end
+
+    if RagdollRemote then
+        local hrp = character:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            pcall(function() RagdollRemote:FireServer(hrp, 1) end)
+        end
+    end
+
+    task.wait(0.3)
+    for _, part in ipairs(targetParts) do
+        if part then
+            part.CFrame = CFrame.new(0, -99999, 0)
+        end
+    end
+    task.wait(0.3)
+    
+    local torso = character:FindFirstChild("Torso")
+    if torso then
+        torso.CFrame = CFrame.new(0, -99999, 0)
+    end
+end
+
+-- =============================================
+-- [ 수동 킬 함수 ]
+-- =============================================
+local targetList = {}
+
+local function manualKill(mode)
+    local char = plr.Character
+    if not char then 
+        Rayfield:Notify({Title = "오류", Content = "캐릭터 없음", Duration = 2})
+        return 
+    end
+    
+    local count = 0
+    for _, targetName in ipairs(targetList) do
+        local target = Players:FindFirstChild(targetName)
+        if target and target.Character and SetNetworkOwner then
+            local torso = target.Character:FindFirstChild("Torso") or target.Character:FindFirstChild("HumanoidRootPart")
+            if torso then
+                pcall(function() SetNetworkOwner:FireServer(torso, torso.CFrame) end)
+                
+                if mode == "kill" then
+                    local FallenY = workspace.FallenPartsDestroyHeight
+                    local targetY = (FallenY <= -50000 and -49999) or (FallenY <= -100 and -99) or -100
+                    pcall(function() torso.CFrame = CFrame.new(99999, targetY, 99999) end)
+                else
+                    pcall(function() torso.CFrame = CFrame.new(99999, 99999, 99999) end)
+                end
+                count = count + 1
+            end
+        end
+        task.wait(0.1)
+    end
+    
+    Rayfield:Notify({Title = mode == "kill" and "Kill" or "Kick", Content = count .. "명 처리", Duration = 2})
+end
+
+-- =============================================
+-- [ 플레이어 재접속 시 방어 기능 재설정 ]
+-- =============================================
+plr.CharacterAdded:Connect(function(char)
+    char:WaitForChild("Humanoid", 5)
+    char:WaitForChild("HumanoidRootPart", 5)
+    task.wait(1)
+    
+    inv = getInv()
+    
+    if AntiExplosionT then
+        AntiExplosionF()
+    end
+    
+    if AntiPaintT then
+        antiPaintF(true)
+    end
+    
+    if AntiBurnV then
+        AntiBurn()
+    end
+end)
+
+-- =============================================
+-- [ 안티 AFK ]
+-- =============================================
+plr.Idled:Connect(function()
+    VirtualUser:CaptureController()
+    VirtualUser:ClickButton2(Vector2.new())
+end)
+
+-- =============================================
+-- [ TP 버튼 생성 ]
+-- =============================================
+pcall(createTPButton)
+
+-- =============================================
+-- [ Rayfield UI 설정 ]
+-- =============================================
+local Window = Rayfield:CreateWindow({
+    Name = "FTAP 올인원 (방어 기능 통합)",
+    LoadingTitle = "킥그랩 + 안티불 + 안티폭발 + 안티페인트 + 안티보이드",
+    ConfigurationSaving = { Enabled = false },
+    Discord = {
+        Enabled = false,
+        Invite = "",
+        RememberJoins = true
+    },
+    KeySystem = false
+})
+
+-- 탭 생성
+local MainTab = Window:CreateTab("메인", 4483362458)
+local GrabTab = Window:CreateTab("그랩", 4483362458)
+local DefenseTab = Window:CreateTab("🛡️ 방어", 4483362458)
+local AuraTab = Window:CreateTab("아우라", 4483362458)
+local TargetTab = Window:CreateTab("킬 플레이어 정하기", 4483362458)
+local SettingsTab = Window:CreateTab("설정", 4483362458)
+
+-- =============================================
+-- [ 메인 탭 ]
+-- =============================================
+MainTab:CreateSection("🛡️ 기본 방어")
+
+local AntiGrabToggle = MainTab:CreateToggle({
+    Name = "⚡ 초고속 Anti-Grab",
+    CurrentValue = false,
+    Callback = function(Value)
+        isAntiGrabEnabled = Value
+        AntiGrabF(Value)
+    end
+})
+
+MainTab:CreateButton({
+    Name = "🔓 즉시 해제",
+    Callback = ManualRelease
+})
+
+local PcldViewToggle = MainTab:CreateToggle({
+    Name = "👁️ PCLD 보이게",
+    CurrentValue = false,
+    Callback = function(Value)
+        pcldViewEnabled = Value
+        togglePcldView(Value)
+    end
+})
+
+local BarrierNoclipToggle = MainTab:CreateToggle({
+    Name = "🧱 Barrier Noclip",
+    CurrentValue = false,
+    Callback = function(Value)
+        BarrierCanCollideT = Value
+        BarrierCanCollideF()
+    end
+})
+
+MainTab:CreateButton({
+    Name = "💥 집 베리어 부수기",
+    Callback = PlotBarrierDelete
+})
+
+local AntiPCLDToggle = MainTab:CreateToggle({
+    Name = "🛡️ Anti-Kick (PCLD 방어)",
+    CurrentValue = false,
+    Callback = function(Value)
+        AntiPCLDEnabled = Value
+        if Value then
+            setupAntiPCLD()
+            Rayfield:Notify({Title = "안티킥", Content = "활성화 - PCLD 감지 시 자동 방어", Duration = 2})
+        else
+            Rayfield:Notify({Title = "안티킥", Content = "비활성화", Duration = 2})
+        end
+    end
+})
+
+MainTab:CreateSection("📊 상태")
+
+local StatusLabel = MainTab:CreateLabel("상태: 확인 중...", 4483362458)
+
+task.spawn(function()
+    while task.wait(0.5) do
+        local char = plr.Character
+        local isHeld = plr:FindFirstChild("IsHeld")
+        local head = char and char:FindFirstChild("Head")
+        local por = head and head:FindFirstChild("PartOwner")
+        
+        if isHeld and isHeld.Value then
+            StatusLabel:Set("상태: 🟡 잡힘")
+        elseif por and por.Value ~= "" then
+            StatusLabel:Set("상태: 🟠 오너쉽 있음 (" .. por.Value .. ")")
+        else
+            StatusLabel:Set("상태: 🟢 안전")
+        end
+    end
+end)
+
+-- =============================================
+-- [ 그랩 탭 ]
+-- =============================================
+GrabTab:CreateSection("🔄 그랩 공격")
+
+local LoopGrabToggle = GrabTab:CreateToggle({
+    Name = "🔄 Loop Grab",
+    CurrentValue = false,
+    Callback = function(Value)
+        AntiStruggleGrabT = Value
+        AntiStruggleGrabF()
+        Rayfield:Notify({Title = "Loop Grab", Content = Value and "활성화" or "비활성화", Duration = 2})
+    end
+})
+
+-- =============================================
+-- [ 방어 탭 (raw에서 가져온 3개 기능 포함) ]
+-- =============================================
+DefenseTab:CreateSection("🌌 보이드 방어")
+
+local AntiVoidToggle = DefenseTab:CreateToggle({
+    Name = "🌌 Anti-Void (보이드 방지)",
+    CurrentValue = true,
+    Callback = function(Value)
+        AntiVoidT = Value
+        AntiVoidF(Value)
+        Rayfield:Notify({Title = "안티보이드", Content = Value and "활성화 (높이 -50000)" or "비활성화", Duration = 2})
+    end
+})
+AntiVoidToggle:Set(true)
+
+DefenseTab:CreateSection("🔥 화염 방어 (raw(2) 소스)")
+
+local AntiBurnToggle = DefenseTab:CreateToggle({
+    Name = "🔥 Anti-Burn (불 방어)",
+    CurrentValue = false,
+    Callback = function(Value)
+        AntiBurnV = Value
+        if Value then
+            AntiBurn()
+            Rayfield:Notify({Title = "안티불", Content = "활성화", Duration = 2})
+        else
+            if AntiBurnThread then
+                task.cancel(AntiBurnThread)
+                AntiBurnThread = nil
+            end
+            Rayfield:Notify({Title = "안티불", Content = "비활성화", Duration = 2})
+        end
+    end
+})
+
+DefenseTab:CreateSection("💥 폭발 방어 (raw(2) 소스)")
+
+local AntiExplodeToggle = DefenseTab:CreateToggle({
+    Name = "💥 Anti-Explosion (폭발 방어)",
+    CurrentValue = false,
+    Callback = function(Value)
+        AntiExplosionT = Value
+        if Value then
+            AntiExplosionF()
+            Rayfield:Notify({Title = "안티폭발", Content = "활성화", Duration = 2})
+        else
+            if AntiExplosionC then 
+                AntiExplosionC:Disconnect() 
+                AntiExplosionC = nil
+            end
+            Rayfield:Notify({Title = "안티폭발", Content = "비활성화", Duration = 2})
+        end
+    end
+})
+
+DefenseTab:CreateSection("🎨 페인트 방어 (raw(2) 소스)")
+
+local AntiPaintToggle = DefenseTab:CreateToggle({
+    Name = "🎨 Anti-Paint (페인트 방어)",
+    CurrentValue = false,
+    Callback = function(Value)
+        AntiPaintT = Value
+        antiPaintF(Value)
+        Rayfield:Notify({Title = "안티페인트", Content = Value and "활성화" or "비활성화", Duration = 2})
+    end
+})
+
+DefenseTab:CreateSection("🛡️ 방어 상태")
+
+local StatusVoid = DefenseTab:CreateLabel("🌌 보이드 방어: 켜짐", 4483362458)
+local StatusBurn = DefenseTab:CreateLabel("🔥 불 방어: 꺼짐", 4483362458)
+local StatusExplode = DefenseTab:CreateLabel("💥 폭발 방어: 꺼짐", 4483362458)
+local StatusPaint = DefenseTab:CreateLabel("🎨 페인트 방어: 꺼짐", 4483362458)
+
+task.spawn(function()
+    while task.wait(0.5) do
+        StatusVoid:Set("🌌 보이드 방어: " .. (AntiVoidT and "켜짐" or "꺼짐"))
+        StatusBurn:Set("🔥 불 방어: " .. (AntiBurnV and "켜짐" or "꺼짐"))
+        StatusExplode:Set("💥 폭발 방어: " .. (AntiExplosionT and "켜짐" or "꺼짐"))
+        StatusPaint:Set("🎨 페인트 방어: " .. (AntiPaintT and "켜짐" or "꺼짐"))
+    end
+end)
+
+-- =============================================
+-- [ 아우라 탭 ]
+-- =============================================
+AuraTab:CreateSection("🌀 안티 스티키 아우라")
+
+local AntiStickyAuraToggle = AuraTab:CreateToggle({
+    Name = "Anti-Sticky Aura",
+    CurrentValue = false,
+    Callback = function(Value)
+        AntiStickyAuraT = Value
+        AntiStickyAuraF()
+        Rayfield:Notify({Title = "안티 스티키", Content = Value and "활성화" or "비활성화", Duration = 2})
+    end
+})
+
+AuraTab:CreateParagraph({
+    Title = "설명",
+    Content = "주변 30스터드 내의 스티키 파트 오너쉽 자동 획득"
+})
+
+-- =============================================
+-- [ 킬 플레이어 정하기 탭 ]
+-- =============================================
+TargetTab:CreateSection("🎯 킬 플레이어 정하기")
+
+local TargetListDropdown = TargetTab:CreateDropdown({
+    Name = "Target List",
+    Options = targetList,
+    CurrentOption = {"OPEN"},
+    MultipleOptions = true,
+    Callback = function(Options)
+        targetList = Options
+    end
+})
+
+TargetTab:CreateInput({
+    Name = "Add (자동완성)",
+    PlaceholderText = "닉네임 일부 입력",
+    RemoveTextAfterFocusLost = true,
+    Callback = function(Value)
+        if not Value or Value == "" then return end
+        
+        local target = findPlayerByPartialName(Value)
+        if not target then
+            Rayfield:Notify({Title = "대상", Content = "플레이어를 찾을 수 없음", Duration = 2})
+            return
+        end
+        
+        for _, name in ipairs(targetList) do
+            if name == target.Name then
+                Rayfield:Notify({Title = "대상", Content = "이미 목록에 있음", Duration = 2})
+                return
+            end
+        end
+        
+        table.insert(targetList, target.Name)
+        TargetListDropdown:Refresh(targetList, true)
+        Rayfield:Notify({Title = "대상", Content = "추가: " .. target.Name, Duration = 2})
+    end
+})
+
+TargetTab:CreateInput({
+    Name = "Remove",
+    PlaceholderText = "닉네임 입력",
+    RemoveTextAfterFocusLost = true,
+    Callback = function(Value)
+        if not Value or Value == "" then return end
+        
+        for i, name in ipairs(targetList) do
+            if name:lower() == Value:lower() then
+                table.remove(targetList, i)
+                TargetListDropdown:Refresh(targetList, true)
+                Rayfield:Notify({Title = "대상", Content = "제거: " .. name, Duration = 2})
+                return
+            end
+        end
+        Rayfield:Notify({Title = "대상", Content = "없는 이름", Duration = 2})
+    end
+})
+
+TargetTab:CreateSection("⚔️ 실행")
+
+TargetTab:CreateButton({
+    Name = "💀 Kill",
+    Callback = function() manualKill("kill") end
+})
+
+TargetTab:CreateButton({
+    Name = "👢 Kick",
+    Callback = function() manualKill("kick") end
+})
+
+-- 팔다리 제거 드롭다운
+local DeletePartDropdown = TargetTab:CreateDropdown({
+    Name = "🦴 제거할 부위 선택",
+    Options = {"Arm/Leg", "Legs", "Arms"},
+    CurrentOption = {"Arm/Leg"},
+    Callback = function(Options)
+        selectedDeletePart = Options[1]
+    end
+})
+
+TargetTab:CreateButton({
+    Name = "🦴 선택된 대상 팔다리 제거",
+    Callback = function()
+        local count = 0
+        for _, targetName in ipairs(targetList) do
+            local target = Players:FindFirstChild(targetName)
+            if target then
+                teleportParts(target, selectedDeletePart)
+                count = count + 1
+            end
+            task.wait(0.2)
+        end
+        Rayfield:Notify({Title = "팔다리 제거", Content = count .. "명 처리", Duration = 3})
+    end
+})
+
+TargetTab:CreateButton({
+    Name = "🎯 현재 그랩한 대상 팔다리 제거",
+    Callback = function()
+        local beamPart = workspace:FindFirstChild("GrabParts") and workspace.GrabParts:FindFirstChild("BeamPart")
+        if beamPart then
+            local targetPlayer = getClosestPlayer(beamPart)
+            if targetPlayer then
+                teleportParts(targetPlayer, selectedDeletePart)
+                Rayfield:Notify({Title = "팔다리 제거", Content = targetPlayer.Name, Duration = 2})
+            end
+        end
+    end
+})
+
+TargetTab:CreateSection("📋 선택된 플레이어")
+local SelectedLabel = TargetTab:CreateLabel("선택됨: 0명", 4483362458)
+task.spawn(function() while task.wait(0.5) do SelectedLabel:Set("선택됨: " .. #targetList .. "명") end end)
+
+-- =============================================
+-- [ 설정 탭 ]
+-- =============================================
+SettingsTab:CreateSection("⌨️ 단축키 안내")
+SettingsTab:CreateParagraph({
+    Title = "PC 단축키",
+    Content = "Z 키: 시선 방향 텔레포트"
+})
+
+SettingsTab:CreateSection("📱 모바일")
+SettingsTab:CreateParagraph({
+    Title = "모바일",
+    Content = "화면 우측 하단의 📍 버튼을 눌러 텔레포트"
+})
+
+-- =============================================
+-- [ 자동 실행 ]
+-- =============================================
+task.wait(1)
+isAntiGrabEnabled = true
+AntiGrabF(true)
+AntiGrabToggle:Set(true)
+
+AntiVoidF(true)  -- 안티보이드 자동 실행
+
+Rayfield:Notify({
+    Title = "🚀 로드 완료",
+    Content = "방어 탭에 안티불/안티폭발/안티페인트 추가됨 | Z키 TP",
+    Duration = 5
+})
     button.MouseButton1Click:Connect(LookTeleport)
 
     -- 드래그 기능
