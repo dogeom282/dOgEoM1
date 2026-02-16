@@ -1,4 +1,4 @@
--- FTAP (Fling Things and People) 올인원 스크립트 (블롭 TP 추가)
+-- FTAP (Fling Things and People) 올인원 스크립트 (TP 버튼 포함)
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 -- =============================================
@@ -34,7 +34,102 @@ local function bringRayfieldToFront()
 end
 bringRayfieldToFront()
 
--- 서비스 로드
+-- =============================================
+-- [ 동그란 TP 버튼 추가 ]
+-- =============================================
+local function createTPButton()
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "TPButton"
+    screenGui.Parent = game:GetService("CoreGui")
+    screenGui.DisplayOrder = 999998  -- Rayfield 바로 아래
+
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(0, 70, 0, 70)
+    button.Position = UDim2.new(0.5, -35, 0.9, -35)
+    button.Text = "📍"
+    button.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+    button.TextColor3 = Color3.new(1, 1, 1)
+    button.Font = Enum.Font.GothamBold
+    button.TextSize = 35
+    button.Parent = screenGui
+
+    -- 동그랗게
+    local circle = Instance.new("UICorner")
+    circle.CornerRadius = UDim.new(1, 0)
+    circle.Parent = button
+
+    -- 그림자
+    local shadow = Instance.new("ImageLabel")
+    shadow.Size = UDim2.new(1, 8, 1, 8)
+    shadow.Position = UDim2.new(0, -4, 0, 4)
+    shadow.BackgroundTransparency = 1
+    shadow.Image = "rbxasset://textures/ui/White/White_9slice_center.png"
+    shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+    shadow.ImageTransparency = 0.6
+    shadow.ZIndex = -1
+    shadow.Parent = button
+
+    -- 클릭 기능
+    button.MouseButton1Click:Connect(function()
+        local cam = workspace.CurrentCamera
+        local char = game.Players.LocalPlayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        
+        if hrp and cam then
+            local rayOrigin = cam.CFrame.Position
+            local rayDirection = cam.CFrame.LookVector * 1000
+            local raycastParams = RaycastParams.new()
+            raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+            raycastParams.FilterDescendantsInstances = {char}
+            
+            local raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+            
+            local targetPos
+            if raycastResult then
+                targetPos = raycastResult.Position + Vector3.new(0, 3, 0)
+            else
+                targetPos = rayOrigin + (rayDirection * 0.5)
+            end
+            
+            hrp.CFrame = CFrame.new(targetPos)
+            
+            -- 효과
+            button.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+            task.wait(0.2)
+            button.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+        end
+    end)
+
+    -- 드래그 기능
+    local dragging = false
+    local dragStart
+    local startPos
+
+    button.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = button.Position
+        end
+    end)
+
+    button.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.Touch then
+            local delta = input.Position - dragStart
+            button.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+
+    button.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+end
+
+-- =============================================
+-- [ 서비스 로드 ]
+-- =============================================
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -1547,8 +1642,8 @@ end
 -- [ Rayfield UI 설정 ]
 -- =============================================
 local Window = Rayfield:CreateWindow({
-    Name = "FTAP 올인원 (블롭 TP 추가)",
-    LoadingTitle = "킥그랩 + 안티불 + 안티폭발 + 안티스티키 + 안티킥 + 블롭TP",
+    Name = "FTAP 올인원 (TP 버튼 포함)",
+    LoadingTitle = "킥그랩 + 안티불 + 안티폭발 + 안티스티키 + 안티킥 + 블롭TP + 시선TP",
     ConfigurationSaving = { Enabled = false }
 })
 
@@ -1641,7 +1736,7 @@ spawn(function()
 end)
 
 -- =============================================
--- [ 블롭 탭 (TP 추가됨) ]
+-- [ 블롭 탭 ]
 -- =============================================
 BlobTab:CreateSection("🦠 블롭 공격 대상")
 
@@ -2206,6 +2301,11 @@ SettingsTab:CreateToggle({
 })
 
 -- =============================================
+-- [ TP 버튼 생성 ]
+-- =============================================
+createTPButton()
+
+-- =============================================
 -- [ 자동 실행 ]
 -- =============================================
 task.wait(1)
@@ -2220,6 +2320,6 @@ bringRayfieldToFront()
 
 Rayfield:Notify({
     Title = "🚀 로드 완료",
-    Content = "블롭 TP 추가 | 원거리에서도 집 안 사람 잡기 가능",
+    Content = "동그란 TP 버튼 추가됨 | 화면 하단",
     Duration = 5
 })
