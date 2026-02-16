@@ -1,4 +1,4 @@
--- FTAP (Fling Things and People) 올인원 스크립트 (PC용)
+-- FTAP (Fling Things and People) 올인원 스크립트 (PC용) - 방어 기능 통합
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 -- =============================================
@@ -346,15 +346,20 @@ local function AntiBurn()
 end
 
 -- =============================================
--- [ 안티 폭발 함수 ]
+-- [ 안티 폭발 함수 (개선된 버전) ]
 -- =============================================
 local AntiExplosionT = false
 local AntiExplosionC = nil
+local AntiExplosionH = nil
 
 local function AntiExplosionF()
     if AntiExplosionC then
         AntiExplosionC:Disconnect()
         AntiExplosionC = nil
+    end
+    if AntiExplosionH then
+        AntiExplosionH:Disconnect()
+        AntiExplosionH = nil
     end
 
     if not AntiExplosionT then return end
@@ -362,15 +367,38 @@ local function AntiExplosionF()
     local char = plr.Character
     if not char then return end
 
-    local hrp = char:WaitForChild("HumanoidRootPart")
-    local hum = char:WaitForChild("Humanoid")
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    local hum = char:FindFirstChild("Humanoid")
+    if not hrp or not hum then return end
 
+    -- ChildAdded 감지 (폭발 추가될 때)
     AntiExplosionC = Workspace.ChildAdded:Connect(function(model)
+        if not char or not hrp or not hum or not AntiExplosionT then return end
+        if model:IsA("BasePart") and (model.Position - hrp.Position).Magnitude <= 25 then
+            if hum.SeatPart ~= nil then
+                hrp.Anchored = true
+                task.wait(0.05)
+                hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+                hrp.Anchored = false
+            else
+                hrp.Anchored = true
+                task.wait(0.05)
+                hum:ChangeState(Enum.HumanoidStateType.Running)
+                hrp.Anchored = false
+                hum.AutoRotate = true
+            end
+        end
+    end)
+
+    -- DescendantAdded 감지 (추가 안전장치)
+    AntiExplosionH = Workspace.DescendantAdded:Connect(function(model)
         if not char or not hrp or not hum or not AntiExplosionT then return end
         if model:IsA("BasePart") and (model.Position - hrp.Position).Magnitude <= 25 then
             hrp.Anchored = true
             task.wait(0.05)
             hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+            hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
             hrp.Anchored = false
         end
     end)
@@ -1663,8 +1691,8 @@ end
 -- [ Rayfield UI 설정 ]
 -- =============================================
 local Window = Rayfield:CreateWindow({
-    Name = "FTAP 올인원 (PC/모바일 겸용)",
-    LoadingTitle = "킥그랩 + 안티불 + 안티폭발 + 안티스티키 + 안티킥 + 블롭TP + 시선TP + 안티페인트",
+    Name = "FTAP 올인원 (방어 기능 통합)",
+    LoadingTitle = "킥그랩 + 안티불 + 안티폭발 + 안티페인트",
     ConfigurationSaving = { Enabled = false }
 })
 
@@ -1672,7 +1700,7 @@ local Window = Rayfield:CreateWindow({
 local MainTab = Window:CreateTab("메인", 4483362458)
 local BlobTab = Window:CreateTab("블롭", 4483362458)
 local GrabTab = Window:CreateTab("그랩", 4483362458)
-local SecurityTab = Window:CreateTab("보안", 4483362458)
+local DefenseTab = Window:CreateTab("🛡️ 방어", 4483362458)  -- 새로 추가
 local AuraTab = Window:CreateTab("아우라", 4483362458)
 local TargetTab = Window:CreateTab("킬 플레이어 정하기", 4483362458)
 local NotifyTab = Window:CreateTab("🔔 알림", 4483362458)
@@ -1956,6 +1984,65 @@ local LoopGrabToggle = GrabTab:CreateToggle({
 })
 
 -- =============================================
+-- [ 방어 탭 (새로 추가) ]
+-- =============================================
+DefenseTab:CreateSection("🔥 화염 방어")
+
+local AntiBurnToggle = DefenseTab:CreateToggle({
+    Name = "🔥 Anti-Burn (불 방어)",
+    CurrentValue = false,
+    Callback = function(Value)
+        AntiBurnV = Value
+        AntiBurn()
+        Rayfield:Notify({Title = "안티불", Content = Value and "활성화 (시야개선)" or "비활성화", Duration = 2})
+    end
+})
+
+DefenseTab:CreateSection("💥 폭발 방어")
+
+local AntiExplodeToggle = DefenseTab:CreateToggle({
+    Name = "💥 Anti-Explosion (폭발 방어)",
+    CurrentValue = false,
+    Callback = function(Value)
+        AntiExplosionT = Value
+        if Value then
+            AntiExplosionF()
+            Rayfield:Notify({Title = "안티폭발", Content = "활성화", Duration = 2})
+        else
+            if AntiExplosionC then AntiExplosionC:Disconnect() end
+            if AntiExplosionH then AntiExplosionH:Disconnect() end
+            Rayfield:Notify({Title = "안티폭발", Content = "비활성화", Duration = 2})
+        end
+    end
+})
+
+DefenseTab:CreateSection("🎨 페인트 방어")
+
+local AntiPaintToggle = DefenseTab:CreateToggle({
+    Name = "🎨 Anti-Paint (페인트 방어)",
+    CurrentValue = false,
+    Callback = function(Value)
+        AntiPaintT = Value
+        AntiPaintF()
+        Rayfield:Notify({Title = "안티페인트", Content = Value and "활성화" or "비활성화", Duration = 2})
+    end
+})
+
+DefenseTab:CreateSection("📋 방어 상태")
+
+local BurnStatus = DefenseTab:CreateLabel("🔥 불 방어: 꺼짐", 4483362458)
+local ExplodeStatus = DefenseTab:CreateLabel("💥 폭발 방어: 꺼짐", 4483362458)
+local PaintStatus = DefenseTab:CreateLabel("🎨 페인트 방어: 꺼짐", 4483362458)
+
+spawn(function()
+    while task.wait(0.5) do
+        BurnStatus:Set("🔥 불 방어: " .. (AntiBurnV and "켜짐" or "꺼짐"))
+        ExplodeStatus:Set("💥 폭발 방어: " .. (AntiExplosionT and "켜짐" or "꺼짐"))
+        PaintStatus:Set("🎨 페인트 방어: " .. (AntiPaintT and "켜짐" or "꺼짐"))
+    end
+end)
+
+-- =============================================
 -- [ 아우라 탭 ]
 -- =============================================
 AuraTab:CreateSection("🌀 안티 스티키 아우라")
@@ -1973,73 +2060,6 @@ local AntiStickyAuraToggle = AuraTab:CreateToggle({
 AuraTab:CreateParagraph({
     Title = "설명",
     Content = "주변 30스터드 내의 스티키 파트 오너쉽 자동 획득"
-})
-
--- =============================================
--- [ 보안 탭 (안티 페인트 추가) ]
--- =============================================
-SecurityTab:CreateSection("🔰 방어 설정")
-
-local AntiVoidToggle = SecurityTab:CreateToggle({
-    Name = "Anti-Void",
-    CurrentValue = true,
-    Callback = function(Value)
-        if Value then
-            Workspace.FallenPartsDestroyHeight = -50000
-        else
-            Workspace.FallenPartsDestroyHeight = -100
-        end
-    end
-})
-AntiVoidToggle:Set(true)
-
-local AntiMasslessToggle = SecurityTab:CreateToggle({
-    Name = "⚖️ Anti-Massless",
-    CurrentValue = false,
-    Callback = function(Value)
-        antiMasslessEnabled = Value
-        AntiMasslessF()
-        Rayfield:Notify({Title = "안티 마스리스", Content = Value and "활성화" or "비활성화", Duration = 2})
-    end
-})
-
-local AntiBurnToggle = SecurityTab:CreateToggle({
-    Name = "🔥 Anti-Burn (시야개선)",
-    CurrentValue = false,
-    Callback = function(Value)
-        AntiBurnV = Value
-        AntiBurn()
-        Rayfield:Notify({Title = "안티 불", Content = Value and "활성화 (머리 위 100스터드)" or "비활성화", Duration = 2})
-    end
-})
-
-local AntiExplodeToggle = SecurityTab:CreateToggle({
-    Name = "💥 Anti-Explosion",
-    CurrentValue = false,
-    Callback = function(Value)
-        AntiExplosionT = Value
-        if Value then
-            AntiExplosionF()
-            Rayfield:Notify({Title = "안티 폭발", Content = "활성화", Duration = 2})
-        else
-            if AntiExplosionC then
-                AntiExplosionC:Disconnect()
-                AntiExplosionC = nil
-            end
-            Rayfield:Notify({Title = "안티 폭발", Content = "비활성화", Duration = 2})
-        end
-    end
-})
-
--- 안티 페인트 토글 추가
-local AntiPaintToggle = SecurityTab:CreateToggle({
-    Name = "🎨 Anti-Paint",
-    CurrentValue = false,
-    Callback = function(Value)
-        AntiPaintT = Value
-        AntiPaintF()
-        Rayfield:Notify({Title = "안티 페인트", Content = Value and "활성화 (주변 페인트 제거)" or "비활성화", Duration = 2})
-    end
 })
 
 -- =============================================
@@ -2347,6 +2367,6 @@ bringRayfieldToFront()
 
 Rayfield:Notify({
     Title = "🚀 로드 완료",
-    Content = "PC: Z키 텔레포트 | 모바일: 하단 버튼",
+    Content = "방어 탭에 안티불/폭발/페인트 추가 | Z키 TP",
     Duration = 5
 })
