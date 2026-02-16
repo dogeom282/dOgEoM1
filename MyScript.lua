@@ -1,8 +1,8 @@
--- FTAP (Fling Things and People) 올인원 스크립트 (PC용) - 방어 기능 통합
+-- FTAP (Fling Things and People) Do
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 -- =============================================
--- [ Infinite Yield 로드 ]
+-- [ 인야 로드 ]
 -- =============================================
 pcall(function()
     loadstring(game:HttpGet('https://cdn.jsdelivr.net/gh/EdgeIY/infiniteyield@master/source'))()
@@ -201,6 +201,21 @@ local function TP(target)
         return true
     end
     return false
+end
+
+-- =============================================
+-- [ 안티보이드 함수 (추가됨) ]
+-- =============================================
+local AntiVoidT = true
+
+local function AntiVoidF(enable)
+    if enable then
+        Workspace.FallenPartsDestroyHeight = -50000
+        print("✅ 안티보이드 활성화 (높이 -50000)")
+    else
+        Workspace.FallenPartsDestroyHeight = -100
+        print("🔴 안티보이드 비활성화")
+    end
 end
 
 -- =============================================
@@ -1692,7 +1707,7 @@ end
 -- =============================================
 local Window = Rayfield:CreateWindow({
     Name = "FTAP 올인원 (방어 기능 통합)",
-    LoadingTitle = "킥그랩 + 안티불 + 안티폭발 + 안티페인트",
+    LoadingTitle = "킥그랩 + 안티불 + 안티폭발 + 안티페인트 + 안티보이드",
     ConfigurationSaving = { Enabled = false }
 })
 
@@ -1700,7 +1715,7 @@ local Window = Rayfield:CreateWindow({
 local MainTab = Window:CreateTab("메인", 4483362458)
 local BlobTab = Window:CreateTab("블롭", 4483362458)
 local GrabTab = Window:CreateTab("그랩", 4483362458)
-local DefenseTab = Window:CreateTab("🛡️ 방어", 4483362458)  -- 새로 추가
+local DefenseTab = Window:CreateTab("🛡️ 방어", 4483362458)
 local AuraTab = Window:CreateTab("아우라", 4483362458)
 local TargetTab = Window:CreateTab("킬 플레이어 정하기", 4483362458)
 local NotifyTab = Window:CreateTab("🔔 알림", 4483362458)
@@ -1984,8 +1999,21 @@ local LoopGrabToggle = GrabTab:CreateToggle({
 })
 
 -- =============================================
--- [ 방어 탭 (새로 추가) ]
+-- [ 방어 탭 (안티보이드 추가) ]
 -- =============================================
+DefenseTab:CreateSection("🌌 보이드 방어")
+
+local AntiVoidToggle = DefenseTab:CreateToggle({
+    Name = "🌌 Anti-Void (보이드 방지)",
+    CurrentValue = true,
+    Callback = function(Value)
+        AntiVoidT = Value
+        AntiVoidF(Value)
+        Rayfield:Notify({Title = "안티보이드", Content = Value and "활성화 (높이 -50000)" or "비활성화", Duration = 2})
+    end
+})
+AntiVoidToggle:Set(true)
+
 DefenseTab:CreateSection("🔥 화염 방어")
 
 local AntiBurnToggle = DefenseTab:CreateToggle({
@@ -2030,12 +2058,14 @@ local AntiPaintToggle = DefenseTab:CreateToggle({
 
 DefenseTab:CreateSection("📋 방어 상태")
 
+local VoidStatus = DefenseTab:CreateLabel("🌌 보이드 방어: 켜짐", 4483362458)
 local BurnStatus = DefenseTab:CreateLabel("🔥 불 방어: 꺼짐", 4483362458)
 local ExplodeStatus = DefenseTab:CreateLabel("💥 폭발 방어: 꺼짐", 4483362458)
 local PaintStatus = DefenseTab:CreateLabel("🎨 페인트 방어: 꺼짐", 4483362458)
 
 spawn(function()
     while task.wait(0.5) do
+        VoidStatus:Set("🌌 보이드 방어: " .. (AntiVoidT and "켜짐" or "꺼짐"))
         BurnStatus:Set("🔥 불 방어: " .. (AntiBurnV and "켜짐" or "꺼짐"))
         ExplodeStatus:Set("💥 폭발 방어: " .. (AntiExplosionT and "켜짐" or "꺼짐"))
         PaintStatus:Set("🎨 페인트 방어: " .. (AntiPaintT and "켜짐" or "꺼짐"))
@@ -2362,11 +2392,12 @@ AntiGrabToggle:Set(true)
 
 setupKickNotifications()
 setupBlobNotifications()
+AntiVoidF(true)  -- 안티보이드 자동 실행
 
 bringRayfieldToFront()
 
 Rayfield:Notify({
     Title = "🚀 로드 완료",
-    Content = "방어 탭에 안티불/폭발/페인트 추가 | Z키 TP",
+    Content = "방어 탭에 안티보이드 추가됨 | Z키 TP",
     Duration = 5
 })
