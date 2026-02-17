@@ -424,16 +424,17 @@ local function AntiPaintF()
 end
 
 -- =============================================
--- [ 킥그랩 관련 변수 ]
+-- [ 킥그랩 관련 변수 - 리스트 방식 ]
 -- =============================================
 local KickGrabState = {
-    Target = nil,
     Looping = false,
     AutoRagdoll = false,
     Mode = "Camera",
     DetentionDist = 19,
     SnowBallLooping = false
 }
+
+local kickGrabTargetList = {}
 
 -- =============================================
 -- [ 킥그랩 유틸 함수 ]
@@ -451,20 +452,36 @@ local function GetPallet()
 end
 
 -- =============================================
--- [ 킥그랩 메인 루프 ]
+-- [ 킥그랩 메인 루프 (리스트 기반) ]
 -- =============================================
 local function ExecuteKickGrabLoop()
     local lastStrikeTime = tick() 
     local lastSpawnTime = 0 
     local currentPalletRef = nil
     local isPalletOwned = false
-    local hasClaimed = false
-    local isBlinking = false
     local frameToggle = true
+    local currentTargetIndex = 1
 
     while KickGrabState.Looping do
+        if #kickGrabTargetList == 0 then
+            break
+        end
+        
+        if currentTargetIndex > #kickGrabTargetList then
+            currentTargetIndex = 1
+        end
+        
+        local targetName = kickGrabTargetList[currentTargetIndex]
+        local target = Players:FindFirstChild(targetName)
+        
+        if not target then
+            currentTargetIndex = currentTargetIndex + 1
+            task.wait()
+            continue
+        end
+        
         local myChar = plr.Character
-        local targetChar = KickGrabState.Target and KickGrabState.Target.Character
+        local targetChar = target.Character
         local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
         
         local targetHrp = targetChar and targetChar:FindFirstChild("HumanoidRootPart")
@@ -483,53 +500,25 @@ local function ExecuteKickGrabLoop()
                 local offset = targetHrp.Position + (targetHrp.Velocity * (ping + 0.15))
                 myHrp.CFrame = CFrame.new(offset) * targetHrp.CFrame.Rotation
                 task.wait(0.1)
-                distance = (myHrp.Position - targetHrp.Position).Magnitude
             end
             
-            if distance > 20 and not hasClaimed and rOwner then
-                isBlinking = true
-                local originalCFrame = myHrp.CFrame
-                myHrp.CFrame = targetHrp.CFrame 
-                
-                local claimStart = tick()
-                while (tick() - claimStart < 0.5) do 
-                    if not KickGrabState.Looping then break end
-                    myHrp.CFrame = targetHrp.CFrame
-                    rOwner:FireServer(targetHrp, targetHrp.CFrame) 
-                    if targetBody then rOwner:FireServer(targetBody, targetBody.CFrame) end
-                    RunService.Heartbeat:Wait()
+            if rOwner then
+                rOwner:FireServer(targetHrp, targetHrp.CFrame)
+                if targetBody then
+                    rOwner:FireServer(targetBody, targetBody.CFrame)
                 end
-                
-                targetHrp.CFrame = originalCFrame
-                targetHrp.AssemblyLinearVelocity = Vector3.zero 
-                
-                myHrp.CFrame = originalCFrame
-                rOwner:FireServer(targetHrp, originalCFrame)
-                
-                hasClaimed = true
-                isBlinking = false 
-            
-            elseif distance <= 20 and not hasClaimed and rOwner then
-                local instantClaimStart = tick()
-                while (tick() - instantClaimStart < 0.3) do
-                    if not KickGrabState.Looping then break end
-                    rOwner:FireServer(targetHrp, targetHrp.CFrame)
-                    if targetBody then rOwner:FireServer(targetBody, targetBody.CFrame) end
-                    RunService.Heartbeat:Wait()
-                end
-                hasClaimed = true 
             end
             
-            if not isBlinking and rOwner and rDestroy then
-                local detentionPos
-                if KickGrabState.Mode == "Up" then 
-                    detentionPos = myHrp.CFrame * CFrame.new(0, 18, 0)
-                elseif KickGrabState.Mode == "Down" then 
-                    detentionPos = myHrp.CFrame * CFrame.new(0, -10, 0)
-                else 
-                    detentionPos = cam.CFrame * CFrame.new(0, 0, -KickGrabState.DetentionDist)
-                end
-                
+            local detentionPos
+            if KickGrabState.Mode == "Up" then 
+                detentionPos = myHrp.CFrame * CFrame.new(0, 18, 0)
+            elseif KickGrabState.Mode == "Down" then 
+                detentionPos = myHrp.CFrame * CFrame.new(0, -10, 0)
+            else 
+                detentionPos = cam.CFrame * CFrame.new(0, 0, -KickGrabState.DetentionDist)
+            end
+            
+            if rOwner and rDestroy then
                 if frameToggle then
                     rOwner:FireServer(targetHrp, detentionPos)
                     targetHrp.CFrame = detentionPos
@@ -564,77 +553,87 @@ local function ExecuteKickGrabLoop()
 
                 if pallet then
                     if not isPalletOwned then
-                        local rCreate = CreateGrabLine
-                        local rExtend = ExtendGrabLine
-                        pallet.CFrame = targetHrp.CFrame * CFrame.new(0, 2, 0) 
-                        if rCreate then rCreate:FireServer(pallet, pallet.CFrame) end
-                        if rExtend then rExtend:FireServer(25) end
+                        if CreateGrabLine then CreateGrabLine:FireServer(pallet, pallet.CFrame) end
+                        if ExtendGrabLine then ExtendGrabLine:FireServer(25) end
                         if rOwner then rOwner:FireServer(pallet, pallet.CFrame) end
                         isPalletOwned = true
                         task.wait(0.1) 
                     else
                         local currentTime = tick()
                         local timeSinceStrike = currentTime - lastStrikeTime
-                        local targetPos
                         if timeSinceStrike > 2.0 then
-                            targetPos = targetHrp.CFrame 
                             pallet.AssemblyLinearVelocity = Vector3.new(0, 400, 0)
                             pallet.AssemblyAngularVelocity = Vector3.new(1000, 1000, 1000)
                             if timeSinceStrike > 2.15 then lastStrikeTime = currentTime end
-                        else
-                            local angle = currentTime * 15
-                            targetPos = targetHrp.CFrame * CFrame.new(math.cos(angle)*100, 50, math.sin(angle)*100)
-                            pallet.AssemblyLinearVelocity = Vector3.zero
-                            pallet.AssemblyAngularVelocity = Vector3.new(100, 100, 100)
                         end
-                        pallet.CFrame = targetPos
+                        pallet.CFrame = targetHrp.CFrame * CFrame.new(0, 50, 0)
                     end
                 end
             end
+            
+            currentTargetIndex = currentTargetIndex + 1
         end
         RunService.Heartbeat:Wait()
     end
 end
 
 -- =============================================
--- [ SnowBall 루프 함수 ]
+-- [ SnowBall 루프 함수 (리스트 기반) ]
 -- =============================================
 local function ExecuteSnowballLoop()
+    local currentTargetIndex = 1
+    
     while KickGrabState.SnowBallLooping do
-        local myHrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
-        local targetChar = KickGrabState.Target and KickGrabState.Target.Character
-        local targetHrp = targetChar and targetChar:FindFirstChild("HumanoidRootPart")
+        if #kickGrabTargetList == 0 then
+            break
+        end
         
-        if myHrp and targetHrp and SpawnToyRemote and SetNetworkOwner and BombExplode then
-            task.spawn(function()
-                SpawnToyRemote:InvokeServer("BallSnowball", myHrp.CFrame * CFrame.new(0, 10, 20), Vector3.new(0, 0, 0))
-            end)
+        if currentTargetIndex > #kickGrabTargetList then
+            currentTargetIndex = 1
+        end
+        
+        local targetName = kickGrabTargetList[currentTargetIndex]
+        local target = Players:FindFirstChild(targetName)
+        
+        if target and target.Character then
+            local myHrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+            local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
             
-            task.wait(0.15)
-            
-            local invName = plr.Name .. "SpawnedInToys"
-            local inv = Workspace:FindFirstChild(invName)
-            local ballPart = inv and inv:FindFirstChild("BallSnowball")
-            local ballSPart = ballPart and ballPart:FindFirstChild("SoundPart")
-            
-            if ballPart and ballSPart then
-                SetNetworkOwner:FireServer(ballSPart, ballSPart.CFrame)
-                ballSPart.CFrame = targetHrp.CFrame
-                BombExplode:FireServer({
-                    Radius = 0, 
-                    Color = Color3.new(0, 0, 0), 
-                    TimeLength = 0, 
-                    Model = ballPart, 
-                    Type = "SnowPoof", 
-                    ExplodesByFire = false, 
-                    MaxForcePerStudSquared = 0, 
-                    Hitbox = ballSPart, 
-                    ImpactSpeed = 0, 
-                    ExplodesByPointy = false, 
-                    DestroysModel = true, 
-                    PositionPart = ballSPart
-                }, Vector3.new(0, 0, 0))
+            if myHrp and targetHrp and SpawnToyRemote and SetNetworkOwner and BombExplode then
+                task.spawn(function()
+                    SpawnToyRemote:InvokeServer("BallSnowball", myHrp.CFrame * CFrame.new(0, 10, 20), Vector3.new(0, 0, 0))
+                end)
+                
+                task.wait(0.15)
+                
+                local invName = plr.Name .. "SpawnedInToys"
+                local inv = Workspace:FindFirstChild(invName)
+                local ballPart = inv and inv:FindFirstChild("BallSnowball")
+                local ballSPart = ballPart and ballPart:FindFirstChild("SoundPart")
+                
+                if ballPart and ballSPart then
+                    SetNetworkOwner:FireServer(ballSPart, ballSPart.CFrame)
+                    ballSPart.CFrame = targetHrp.CFrame
+                    BombExplode:FireServer({
+                        Radius = 0, 
+                        Color = Color3.new(0, 0, 0), 
+                        TimeLength = 0, 
+                        Model = ballPart, 
+                        Type = "SnowPoof", 
+                        ExplodesByFire = false, 
+                        MaxForcePerStudSquared = 0, 
+                        Hitbox = ballSPart, 
+                        ImpactSpeed = 0, 
+                        ExplodesByPointy = false, 
+                        DestroysModel = true, 
+                        PositionPart = ballSPart
+                    }, Vector3.new(0, 0, 0))
+                end
+                
+                currentTargetIndex = currentTargetIndex + 1
             end
+        else
+            currentTargetIndex = currentTargetIndex + 1
         end
         task.wait(0.15)
     end
@@ -1976,7 +1975,7 @@ AuraTab:CreateParagraph({
 })
 
 -- =============================================
--- [ 보안 탭 (안티 페인트 추가) ]
+-- [ 보안 탭 ]
 -- =============================================
 SecurityTab:CreateSection("🔰 방어 설정")
 
@@ -2031,7 +2030,6 @@ local AntiExplodeToggle = SecurityTab:CreateToggle({
     end
 })
 
--- 안티 페인트 토글 추가
 local AntiPaintToggle = SecurityTab:CreateToggle({
     Name = "🎨 Anti-Paint",
     CurrentValue = false,
@@ -2043,44 +2041,60 @@ local AntiPaintToggle = SecurityTab:CreateToggle({
 })
 
 -- =============================================
--- [ 킥그랩 탭 ]
+-- [ 킥그랩 탭 - 리스트 방식 ]
 -- =============================================
-KickGrabTab:CreateSection("🎯 대상 선택")
+KickGrabTab:CreateSection("🎯 킥그랩 대상 리스트")
 
-local TargetList = {}
-for _, player in ipairs(Players:GetPlayers()) do
-    if player ~= plr then
-        table.insert(TargetList, player.Name)
-    end
-end
-
-local TargetDropdown = KickGrabTab:CreateDropdown({
-    Name = "대상 선택",
-    Options = TargetList,
-    CurrentOption = {"선택하세요"},
-    MultipleOptions = false,
-    Callback = function(Options)
-        local targetName = Options[1]
-        if targetName and targetName ~= "선택하세요" then
-            KickGrabState.Target = Players:FindFirstChild(targetName)
-            Rayfield:Notify({Title = "킥그랩", Content = "대상: " .. targetName, Duration = 2})
-        end
-    end
+local KickGrabTargetDropdown = KickGrabTab:CreateDropdown({
+    Name = "Kick Grab List",
+    Options = kickGrabTargetList,
+    CurrentOption = {"OPEN"},
+    MultipleOptions = true,
+    Callback = function(Options) end
 })
 
 KickGrabTab:CreateInput({
-    Name = "대상 입력 (자동완성)",
+    Name = "Add (자동완성)",
     PlaceholderText = "닉네임 일부 입력",
     RemoveTextAfterFocusLost = true,
     Callback = function(Value)
         if not Value or Value == "" then return end
+        
         local target = findPlayerByPartialName(Value)
-        if target then
-            KickGrabState.Target = target
-            Rayfield:Notify({Title = "킥그랩", Content = "대상: " .. target.Name, Duration = 2})
-        else
-            Rayfield:Notify({Title = "오류", Content = "플레이어를 찾을 수 없음", Duration = 2})
+        if not target then
+            Rayfield:Notify({Title = "킥그랩", Content = "플레이어를 찾을 수 없음", Duration = 2})
+            return
         end
+        
+        for _, name in ipairs(kickGrabTargetList) do
+            if name == target.Name then
+                Rayfield:Notify({Title = "킥그랩", Content = "이미 리스트에 있음", Duration = 2})
+                return
+            end
+        end
+        
+        table.insert(kickGrabTargetList, target.Name)
+        KickGrabTargetDropdown:Refresh(kickGrabTargetList, true)
+        Rayfield:Notify({Title = "킥그랩", Content = "추가: " .. target.Name, Duration = 2})
+    end
+})
+
+KickGrabTab:CreateInput({
+    Name = "Remove",
+    PlaceholderText = "닉네임 입력",
+    RemoveTextAfterFocusLost = true,
+    Callback = function(Value)
+        if not Value or Value == "" then return end
+        
+        for i, name in ipairs(kickGrabTargetList) do
+            if name:lower() == Value:lower() then
+                table.remove(kickGrabTargetList, i)
+                KickGrabTargetDropdown:Refresh(kickGrabTargetList, true)
+                Rayfield:Notify({Title = "킥그랩", Content = "제거: " .. name, Duration = 2})
+                return
+            end
+        end
+        Rayfield:Notify({Title = "킥그랩", Content = "리스트에 없는 이름", Duration = 2})
     end
 })
 
@@ -2116,15 +2130,15 @@ local KickGrabToggle = KickGrabTab:CreateToggle({
     Name = "👢 Kick Grab",
     CurrentValue = false,
     Callback = function(Value)
-        if Value and not KickGrabState.Target then
-            Rayfield:Notify({Title = "오류", Content = "대상을 먼저 선택하세요", Duration = 2})
+        if Value and #kickGrabTargetList == 0 then
+            Rayfield:Notify({Title = "오류", Content = "대상 리스트가 비어있습니다", Duration = 2})
             KickGrabToggle:Set(false)
             return
         end
         KickGrabState.Looping = Value
         if Value then
             task.spawn(ExecuteKickGrabLoop)
-            Rayfield:Notify({Title = "킥그랩", Content = "활성화 (원거리 TP)", Duration = 2})
+            Rayfield:Notify({Title = "킥그랩", Content = "활성화 (" .. #kickGrabTargetList .. "명)", Duration = 2})
         else
             Rayfield:Notify({Title = "킥그랩", Content = "비활성화", Duration = 2})
         end
@@ -2144,15 +2158,15 @@ local SnowBallToggle = KickGrabTab:CreateToggle({
     Name = "❄️ SnowBall Ragdoll",
     CurrentValue = false,
     Callback = function(Value)
-        if Value and not KickGrabState.Target then
-            Rayfield:Notify({Title = "오류", Content = "대상을 먼저 선택하세요", Duration = 2})
+        if Value and #kickGrabTargetList == 0 then
+            Rayfield:Notify({Title = "오류", Content = "대상 리스트가 비어있습니다", Duration = 2})
             SnowBallToggle:Set(false)
             return
         end
         KickGrabState.SnowBallLooping = Value
         if Value then
             task.spawn(ExecuteSnowballLoop)
-            Rayfield:Notify({Title = "스노우볼", Content = "활성화", Duration = 2})
+            Rayfield:Notify({Title = "스노우볼", Content = "활성화 (" .. #kickGrabTargetList .. "명)", Duration = 2})
         else
             Rayfield:Notify({Title = "스노우볼", Content = "비활성화", Duration = 2})
         end
@@ -2347,6 +2361,6 @@ bringRayfieldToFront()
 
 Rayfield:Notify({
     Title = "🚀 로드 완료",
-    Content = "PC: Z키 텔레포트 | 모바일: 하단 버튼",
+    Content = "PC: Z키 텔레포트 | 킥그랩 리스트 방식 적용",
     Duration = 5
 })
