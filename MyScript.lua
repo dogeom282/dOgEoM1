@@ -424,16 +424,17 @@ local function AntiPaintF()
 end
 
 -- =============================================
--- [ 킥그랩 관련 변수 ]
+-- [ 킥그랩 관련 변수 - 리스트 방식 ]
 -- =============================================
 local KickGrabState = {
-    Target = nil,
     Looping = false,
     AutoRagdoll = false,
     Mode = "Camera",
     DetentionDist = 19,
     SnowBallLooping = false
 }
+
+local kickGrabTargetList = {}
 
 -- =============================================
 -- [ 킥그랩 유틸 함수 ]
@@ -451,20 +452,36 @@ local function GetPallet()
 end
 
 -- =============================================
--- [ 킥그랩 메인 루프 ]
+-- [ 킥그랩 메인 루프 (리스트 기반) ]
 -- =============================================
 local function ExecuteKickGrabLoop()
     local lastStrikeTime = tick() 
     local lastSpawnTime = 0 
     local currentPalletRef = nil
     local isPalletOwned = false
-    local hasClaimed = false
-    local isBlinking = false
     local frameToggle = true
+    local currentTargetIndex = 1
 
     while KickGrabState.Looping do
+        if #kickGrabTargetList == 0 then
+            break
+        end
+        
+        if currentTargetIndex > #kickGrabTargetList then
+            currentTargetIndex = 1
+        end
+        
+        local targetName = kickGrabTargetList[currentTargetIndex]
+        local target = Players:FindFirstChild(targetName)
+        
+        if not target then
+            currentTargetIndex = currentTargetIndex + 1
+            task.wait()
+            continue
+        end
+        
         local myChar = plr.Character
-        local targetChar = KickGrabState.Target and KickGrabState.Target.Character
+        local targetChar = target.Character
         local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
         
         local targetHrp = targetChar and targetChar:FindFirstChild("HumanoidRootPart")
@@ -483,53 +500,25 @@ local function ExecuteKickGrabLoop()
                 local offset = targetHrp.Position + (targetHrp.Velocity * (ping + 0.15))
                 myHrp.CFrame = CFrame.new(offset) * targetHrp.CFrame.Rotation
                 task.wait(0.1)
-                distance = (myHrp.Position - targetHrp.Position).Magnitude
             end
             
-            if distance > 20 and not hasClaimed and rOwner then
-                isBlinking = true
-                local originalCFrame = myHrp.CFrame
-                myHrp.CFrame = targetHrp.CFrame 
-                
-                local claimStart = tick()
-                while (tick() - claimStart < 0.5) do 
-                    if not KickGrabState.Looping then break end
-                    myHrp.CFrame = targetHrp.CFrame
-                    rOwner:FireServer(targetHrp, targetHrp.CFrame) 
-                    if targetBody then rOwner:FireServer(targetBody, targetBody.CFrame) end
-                    RunService.Heartbeat:Wait()
+            if rOwner then
+                rOwner:FireServer(targetHrp, targetHrp.CFrame)
+                if targetBody then
+                    rOwner:FireServer(targetBody, targetBody.CFrame)
                 end
-                
-                targetHrp.CFrame = originalCFrame
-                targetHrp.AssemblyLinearVelocity = Vector3.zero 
-                
-                myHrp.CFrame = originalCFrame
-                rOwner:FireServer(targetHrp, originalCFrame)
-                
-                hasClaimed = true
-                isBlinking = false 
-            
-            elseif distance <= 20 and not hasClaimed and rOwner then
-                local instantClaimStart = tick()
-                while (tick() - instantClaimStart < 0.3) do
-                    if not KickGrabState.Looping then break end
-                    rOwner:FireServer(targetHrp, targetHrp.CFrame)
-                    if targetBody then rOwner:FireServer(targetBody, targetBody.CFrame) end
-                    RunService.Heartbeat:Wait()
-                end
-                hasClaimed = true 
             end
             
-            if not isBlinking and rOwner and rDestroy then
-                local detentionPos
-                if KickGrabState.Mode == "Up" then 
-                    detentionPos = myHrp.CFrame * CFrame.new(0, 18, 0)
-                elseif KickGrabState.Mode == "Down" then 
-                    detentionPos = myHrp.CFrame * CFrame.new(0, -10, 0)
-                else 
-                    detentionPos = cam.CFrame * CFrame.new(0, 0, -KickGrabState.DetentionDist)
-                end
-                
+            local detentionPos
+            if KickGrabState.Mode == "Up" then 
+                detentionPos = myHrp.CFrame * CFrame.new(0, 18, 0)
+            elseif KickGrabState.Mode == "Down" then 
+                detentionPos = myHrp.CFrame * CFrame.new(0, -10, 0)
+            else 
+                detentionPos = cam.CFrame * CFrame.new(0, 0, -KickGrabState.DetentionDist)
+            end
+            
+            if rOwner and rDestroy then
                 if frameToggle then
                     rOwner:FireServer(targetHrp, detentionPos)
                     targetHrp.CFrame = detentionPos
@@ -564,77 +553,87 @@ local function ExecuteKickGrabLoop()
 
                 if pallet then
                     if not isPalletOwned then
-                        local rCreate = CreateGrabLine
-                        local rExtend = ExtendGrabLine
-                        pallet.CFrame = targetHrp.CFrame * CFrame.new(0, 2, 0) 
-                        if rCreate then rCreate:FireServer(pallet, pallet.CFrame) end
-                        if rExtend then rExtend:FireServer(25) end
+                        if CreateGrabLine then CreateGrabLine:FireServer(pallet, pallet.CFrame) end
+                        if ExtendGrabLine then ExtendGrabLine:FireServer(25) end
                         if rOwner then rOwner:FireServer(pallet, pallet.CFrame) end
                         isPalletOwned = true
                         task.wait(0.1) 
                     else
                         local currentTime = tick()
                         local timeSinceStrike = currentTime - lastStrikeTime
-                        local targetPos
                         if timeSinceStrike > 2.0 then
-                            targetPos = targetHrp.CFrame 
                             pallet.AssemblyLinearVelocity = Vector3.new(0, 400, 0)
                             pallet.AssemblyAngularVelocity = Vector3.new(1000, 1000, 1000)
                             if timeSinceStrike > 2.15 then lastStrikeTime = currentTime end
-                        else
-                            local angle = currentTime * 15
-                            targetPos = targetHrp.CFrame * CFrame.new(math.cos(angle)*100, 50, math.sin(angle)*100)
-                            pallet.AssemblyLinearVelocity = Vector3.zero
-                            pallet.AssemblyAngularVelocity = Vector3.new(100, 100, 100)
                         end
-                        pallet.CFrame = targetPos
+                        pallet.CFrame = targetHrp.CFrame * CFrame.new(0, 50, 0)
                     end
                 end
             end
+            
+            currentTargetIndex = currentTargetIndex + 1
         end
         RunService.Heartbeat:Wait()
     end
 end
 
 -- =============================================
--- [ SnowBall 루프 함수 ]
+-- [ SnowBall 루프 함수 (리스트 기반) ]
 -- =============================================
 local function ExecuteSnowballLoop()
+    local currentTargetIndex = 1
+    
     while KickGrabState.SnowBallLooping do
-        local myHrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
-        local targetChar = KickGrabState.Target and KickGrabState.Target.Character
-        local targetHrp = targetChar and targetChar:FindFirstChild("HumanoidRootPart")
+        if #kickGrabTargetList == 0 then
+            break
+        end
         
-        if myHrp and targetHrp and SpawnToyRemote and SetNetworkOwner and BombExplode then
-            task.spawn(function()
-                SpawnToyRemote:InvokeServer("BallSnowball", myHrp.CFrame * CFrame.new(0, 10, 20), Vector3.new(0, 0, 0))
-            end)
+        if currentTargetIndex > #kickGrabTargetList then
+            currentTargetIndex = 1
+        end
+        
+        local targetName = kickGrabTargetList[currentTargetIndex]
+        local target = Players:FindFirstChild(targetName)
+        
+        if target and target.Character then
+            local myHrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+            local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
             
-            task.wait(0.15)
-            
-            local invName = plr.Name .. "SpawnedInToys"
-            local inv = Workspace:FindFirstChild(invName)
-            local ballPart = inv and inv:FindFirstChild("BallSnowball")
-            local ballSPart = ballPart and ballPart:FindFirstChild("SoundPart")
-            
-            if ballPart and ballSPart then
-                SetNetworkOwner:FireServer(ballSPart, ballSPart.CFrame)
-                ballSPart.CFrame = targetHrp.CFrame
-                BombExplode:FireServer({
-                    Radius = 0, 
-                    Color = Color3.new(0, 0, 0), 
-                    TimeLength = 0, 
-                    Model = ballPart, 
-                    Type = "SnowPoof", 
-                    ExplodesByFire = false, 
-                    MaxForcePerStudSquared = 0, 
-                    Hitbox = ballSPart, 
-                    ImpactSpeed = 0, 
-                    ExplodesByPointy = false, 
-                    DestroysModel = true, 
-                    PositionPart = ballSPart
-                }, Vector3.new(0, 0, 0))
+            if myHrp and targetHrp and SpawnToyRemote and SetNetworkOwner and BombExplode then
+                task.spawn(function()
+                    SpawnToyRemote:InvokeServer("BallSnowball", myHrp.CFrame * CFrame.new(0, 10, 20), Vector3.new(0, 0, 0))
+                end)
+                
+                task.wait(0.15)
+                
+                local invName = plr.Name .. "SpawnedInToys"
+                local inv = Workspace:FindFirstChild(invName)
+                local ballPart = inv and inv:FindFirstChild("BallSnowball")
+                local ballSPart = ballPart and ballPart:FindFirstChild("SoundPart")
+                
+                if ballPart and ballSPart then
+                    SetNetworkOwner:FireServer(ballSPart, ballSPart.CFrame)
+                    ballSPart.CFrame = targetHrp.CFrame
+                    BombExplode:FireServer({
+                        Radius = 0, 
+                        Color = Color3.new(0, 0, 0), 
+                        TimeLength = 0, 
+                        Model = ballPart, 
+                        Type = "SnowPoof", 
+                        ExplodesByFire = false, 
+                        MaxForcePerStudSquared = 0, 
+                        Hitbox = ballSPart, 
+                        ImpactSpeed = 0, 
+                        ExplodesByPointy = false, 
+                        DestroysModel = true, 
+                        PositionPart = ballSPart
+                    }, Vector3.new(0, 0, 0))
+                end
+                
+                currentTargetIndex = currentTargetIndex + 1
             end
+        else
+            currentTargetIndex = currentTargetIndex + 1
         end
         task.wait(0.15)
     end
@@ -824,12 +823,9 @@ local currentBlobS = nil
 local blobmanInstanceS = nil
 local sitJumpT = false
 local AutoGucciT = false
-local AutoGucciTV2 = false  -- Train Gucci 토글
 local ragdollLoopD = false
-local blobLoopKillT = false
-local blobLoopKickT = false
-local blobKillThread = nil
-local blobKickThread = nil
+local blobLoopT = false
+local blobLoopThread = nil
 local antiMasslessEnabled = false
 local antiMasslessThread = nil
 local PPs = Workspace:FindFirstChild("PlotItems") and Workspace.PlotItems:FindFirstChild("PlayersInPlots")
@@ -955,228 +951,6 @@ local function BlobMassless(blob, target, side)
 end
 
 -- =============================================
--- [ 🔥 Train Gucci 함수 (raw(2).txt에서 가져옴) ]
--- =============================================
-local function ragdollLoopF()
-    if ragdollLoopD then return end
-    ragdollLoopD = true
-
-    while sitJumpT do
-        local char = plr.Character
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        if char and hrp and RagdollRemote then
-            RagdollRemote:FireServer(hrp, 0)
-        end
-        task.wait()
-    end
-    ragdollLoopD = false
-end
-
-local function sitJumpFV2()
-    local char = plr.Character
-    local hum = char and char:FindFirstChild("Humanoid")
-    if not char or not hum then return end
-
-    local seat = workspace.Map.AlwaysHereTweenedObjects.Train.Object.ObjectModel.Seat
-    if seat and seat.Occupant ~= hum then
-        seat:Sit(hum)
-        AutoGucciTV2 = false
-        sitJumpT = false
-    end
-end
-
-local function AutoGucciFV2()
-    if not AutoGucciTV2 then return end
-    
-    local char = plr.Character
-    if not char then
-        task.wait(1)
-        return 
-    end
-
-    local hrp = char:WaitForChild("HumanoidRootPart")
-    local hum = char:WaitForChild("Humanoid")
-
-    if not hrp then return end
-    local OCF = hrp.CFrame
-
-    if not sitJumpT then
-        task.spawn(sitJumpFV2)
-        sitJumpT = true
-    end
-    task.spawn(ragdollLoopF)
-    task.wait(0.3)
-    hrp.CFrame = OCF
-    sitJumpT = false
-end
-
--- =============================================
--- [ 🔥 수정됨: 진짜 블롭 킬 함수 (오너십 + 지하 -9999999) ]
--- =============================================
-function BlobRealKill(blob, target, side)
-    if not blob or not target then return end
-    
-    -- 1. 블롭으로 Grab
-    local detector = blob:FindFirstChild(side.."Detector")
-    if not detector then return end
-    local weld = detector:FindFirstChild(side.."Weld")
-    if not weld then return end
-    
-    local script = blob:FindFirstChild("BlobmanSeatAndOwnerScript")
-    if script and script:FindFirstChild("CreatureGrab") then
-        pcall(function()
-            script.CreatureGrab:FireServer(detector, target, weld)
-        end)
-    end
-    
-    task.wait(0.1)
-    
-    -- 2. 오너십 획득 (중요!)
-    pcall(function()
-        SetNetworkOwner:FireServer(target, target.CFrame)
-    end)
-    
-    task.wait(0.1)
-    
-    -- 3. 지하로 보내기 (-9999999)
-    pcall(function()
-        target.CFrame = CFrame.new(0, -9999999, 0)
-    end)
-end
-
--- =============================================
--- [ 블롭 킥 함수 (오너십 + 매스리스) ]
--- =============================================
-function BlobRealKick(blob, target, side)
-    if not blob or not target then return end
-    
-    -- 1. 블롭으로 Grab
-    local detector = blob:FindFirstChild(side.."Detector")
-    if not detector then return end
-    local weld = detector:FindFirstChild(side.."Weld")
-    if not weld then return end
-    
-    local script = blob:FindFirstChild("BlobmanSeatAndOwnerScript")
-    if script and script:FindFirstChild("CreatureGrab") then
-        pcall(function()
-            script.CreatureGrab:FireServer(detector, target, weld)
-        end)
-    end
-    
-    task.wait(0.1)
-    
-    -- 2. 오너십 획득
-    pcall(function()
-        SetNetworkOwner:FireServer(target, target.CFrame)
-    end)
-    
-    task.wait(0.1)
-    
-    -- 3. 매스리스 적용
-    pcall(function()
-        target.Massless = true
-    end)
-end
-
--- =============================================
--- [ 블롭 킬 루프 ]
--- =============================================
-local function BlobLoopKill()
-    UpdateCurrentBlobman()
-    if not currentBlobS then
-        Rayfield:Notify({Title = "블롭", Content = "블롭을 타고 있어야 합니다", Duration = 2})
-        return
-    end
-    
-    blobKillThread = task.spawn(function()
-        while blobLoopKillT do
-            for _, targetName in ipairs(playersInLoop1V) do
-                if not blobLoopKillT then break end
-                
-                local player = Players:FindFirstChild(targetName)
-                if not player then continue end
-                
-                if PPs and PPs:FindFirstChild(targetName) then continue end
-                if inv and inv:FindFirstChild(targetName) then continue end
-                
-                local character = player.Character
-                if not character then continue end
-                
-                local hrp = character:FindFirstChild("HumanoidRootPart")
-                if not hrp then continue end
-                
-                local humanoid = character:FindFirstChildOfClass("Humanoid")
-                if humanoid and humanoid.Health > 0 then
-                    local myChar = plr.Character
-                    local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
-                    
-                    if myHrp then
-                        local distance = (myHrp.Position - hrp.Position).Magnitude
-                        if distance > 30 then
-                            TP(player)
-                            task.wait(0.1)
-                        end
-                    end
-                    
-                    BlobRealKill(currentBlobS, hrp, "Right")
-                end
-                task.wait(0.1)
-            end
-            task.wait(0.3)
-        end
-    end)
-end
-
--- =============================================
--- [ 블롭 킥 루프 ]
--- =============================================
-local function BlobLoopKick()
-    UpdateCurrentBlobman()
-    if not currentBlobS then
-        Rayfield:Notify({Title = "블롭", Content = "블롭을 타고 있어야 합니다", Duration = 2})
-        return
-    end
-    
-    blobKickThread = task.spawn(function()
-        while blobLoopKickT do
-            for _, targetName in ipairs(playersInLoop1V) do
-                if not blobLoopKickT then break end
-                
-                local player = Players:FindFirstChild(targetName)
-                if not player then continue end
-                
-                if PPs and PPs:FindFirstChild(targetName) then continue end
-                if inv and inv:FindFirstChild(targetName) then continue end
-                
-                local character = player.Character
-                if not character then continue end
-                
-                local hrp = character:FindFirstChild("HumanoidRootPart")
-                if not hrp then continue end
-                
-                local humanoid = character:FindFirstChildOfClass("Humanoid")
-                if humanoid and humanoid.Health > 0 then
-                    local myChar = plr.Character
-                    local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
-                    
-                    if myHrp then
-                        local distance = (myHrp.Position - hrp.Position).Magnitude
-                        if distance > 30 then
-                            TP(player)
-                            task.wait(0.1)
-                        end
-                    end
-                    
-                    BlobRealKick(currentBlobS, hrp, "Right")
-                end
-                task.wait(0.1)
-            end
-            task.wait(0.3)
-        end
-    end)
-end
-
--- =============================================
 -- [ 수정된 블롭 공격 함수 (원거리 TP 추가) ]
 -- =============================================
 local function BlobAttackAll(mode)
@@ -1204,9 +978,9 @@ local function BlobAttackAll(mode)
                 end
                 
                 if mode == "kill" then
-                    BlobRealKill(currentBlobS, hrp, "Right")
-                elseif mode == "kick" then
-                    BlobRealKick(currentBlobS, hrp, "Right")
+                    BlobGrab(currentBlobS, hrp, "Right")
+                    task.wait(0.1)
+                    BlobRelease(currentBlobS, hrp, "Right")
                 elseif mode == "massless" then
                     BlobMassless(currentBlobS, hrp, "Right")
                 elseif mode == "grab" then
@@ -1222,8 +996,112 @@ local function BlobAttackAll(mode)
         task.wait(0.1)
     end
     
-    local modeNames = {kill="킬(지하)", kick="킥", massless="매스리스", grab="잡기", release="놓기", drop="드롭"}
+    local modeNames = {kill="킬", massless="매스리스", grab="잡기", release="놓기", drop="드롭"}
     Rayfield:Notify({Title = "블롭 " .. modeNames[mode], Content = count .. "명 처리", Duration = 2})
+end
+
+-- =============================================
+-- [ 수정된 블롭 자동 킥 함수 (원거리 TP 추가) ]
+-- =============================================
+local function BlobLoopKick()
+    UpdateCurrentBlobman()
+    if not currentBlobS then
+        Rayfield:Notify({Title = "블롭", Content = "블롭을 타고 있어야 합니다", Duration = 2})
+        return
+    end
+    
+    if blobLoopThread then
+        task.cancel(blobLoopThread)
+        blobLoopThread = nil
+    end
+    
+    blobLoopThread = task.spawn(function()
+        while blobLoopT do
+            for _, targetName in ipairs(playersInLoop1V) do
+                if not blobLoopT then break end
+                
+                local player = Players:FindFirstChild(targetName)
+                if not player then continue end
+                
+                if PPs and PPs:FindFirstChild(targetName) then continue end
+                if inv and inv:FindFirstChild(targetName) then continue end
+                
+                local character = player.Character
+                if not character then continue end
+                
+                local hrp = character:FindFirstChild("HumanoidRootPart")
+                if not hrp then continue end
+                
+                if hrp.Massless == true then continue end
+                
+                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                if humanoid and humanoid.Health > 0 then
+                    local myChar = plr.Character
+                    local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
+                    
+                    if myHrp then
+                        local distance = (myHrp.Position - hrp.Position).Magnitude
+                        if distance > 30 then
+                            TP(player)
+                            task.wait(0.1)
+                        end
+                    end
+                    
+                    local head = character:FindFirstChild("Head")
+                    if head then
+                        local tpRunning = true
+                        local myChar = plr.Character
+                        local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
+                        local originCF = myHrp and myHrp.CFrame
+                        
+                        local tpThread = task.spawn(function()
+                            while tpRunning do
+                                if player.Character and player.Character:FindFirstChild("HumanoidRootPart") and myHrp then
+                                    local targetHRP = player.Character.HumanoidRootPart
+                                    local ping = plr:GetNetworkPing()
+                                    local offset = targetHRP.Position + (targetHRP.Velocity * (ping + 0.15))
+                                    myHrp.CFrame = CFrame.new(offset) * targetHRP.CFrame.Rotation
+                                end
+                                task.wait()
+                            end
+                        end)
+                        
+                        for _ = 1, 30 do
+                            if not blobLoopT then break end
+                            pcall(function()
+                                SetNetworkOwner:FireServer(head, head.CFrame)
+                            end)
+                            local ownerTag = head:FindFirstChild("PartOwner")
+                            if ownerTag and ownerTag:IsA("StringValue") and ownerTag.Value == plr.Name then
+                                break
+                            end
+                            task.wait(0.1)
+                        end
+                        
+                        tpRunning = false
+                        task.cancel(tpThread)
+                        
+                        pcall(function()
+                            DestroyGrabLine:FireServer(head, head.CFrame)
+                        end)
+                        
+                        if myHrp then
+                            hrp.CFrame = CFrame.new(myHrp.CFrame.X, myHrp.CFrame.Y + 50, myHrp.CFrame.Z)
+                            myHrp.CFrame = hrp.CFrame
+                        end
+                        
+                        BlobMassless(currentBlobS, hrp, "Right")
+                        
+                        if originCF and myHrp then
+                            myHrp.CFrame = originCF
+                        end
+                    end
+                end
+                task.wait(0.1)
+            end
+            task.wait(0.3)
+        end
+    end)
 end
 
 -- =============================================
@@ -1389,7 +1267,7 @@ local function PlotBarrierDelete()
     local foodBread = inv and inv:FindFirstChild("FoodBread")
     if not foodBread then 
         PBDrun = false 
-        Rayfield:Notify({Title = "오류", Content = "FoodBread 생성 실패", Duration = 2})
+        Rayfield:Notify({Title = "오류", Content = "빵 생성 실패", Duration = 2})
         return 
     end
 
@@ -1495,8 +1373,23 @@ local function ManualRelease()
 end
 
 -- =============================================
--- [ Auto-Gucci 함수 (일반) ]
+-- [ Auto-Gucci 함수 ]
 -- =============================================
+local function ragdollLoopF()
+    if ragdollLoopD then return end
+    ragdollLoopD = true
+
+    while sitJumpT do
+        local char = plr.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if char and hrp and RagdollRemote then
+            RagdollRemote:FireServer(hrp, 0)
+        end
+        task.wait()
+    end
+    ragdollLoopD = false
+end
+
 local function sitJumpF()
     local char = plr.Character
     local hum = char and char:FindFirstChild("Humanoid")
@@ -1769,8 +1662,8 @@ end
 -- [ Rayfield UI 설정 ]
 -- =============================================
 local Window = Rayfield:CreateWindow({
-    Name = "FTAP 올인원 (PC/모바일 겸용)",
-    LoadingTitle = "킥그랩 + 안티불 + 안티폭발 + 안티스티키 + 안티킥 + 블롭TP + 시선TP + 안티페인트 + 블롭지하킬 + 트레인구찌",
+    Name = "FTAP-도검",
+    LoadingTitle = "제작자: sos107ppq",
     ConfigurationSaving = { Enabled = false }
 })
 
@@ -1791,7 +1684,7 @@ local SettingsTab = Window:CreateTab("설정", 4483362458)
 MainTab:CreateSection("🛡️ 기본 방어")
 
 local AntiGrabToggle = MainTab:CreateToggle({
-    Name = "⚡ 초고속 Anti-Grab",
+    Name = "⚡ 안티 그랩",
     CurrentValue = false,
     Callback = function(Value)
         isAntiGrabEnabled = Value
@@ -1800,12 +1693,12 @@ local AntiGrabToggle = MainTab:CreateToggle({
 })
 
 MainTab:CreateButton({
-    Name = "🔓 즉시 해제",
+    Name = "🔓 쓰지마세요",
     Callback = ManualRelease
 })
 
 local PcldViewToggle = MainTab:CreateToggle({
-    Name = "👁️ PCLD 보이게",
+    Name = "👁️ PCLD 보기",
     CurrentValue = false,
     Callback = function(Value)
         pcldViewEnabled = Value
@@ -1814,7 +1707,7 @@ local PcldViewToggle = MainTab:CreateToggle({
 })
 
 local BarrierNoclipToggle = MainTab:CreateToggle({
-    Name = "🧱 Barrier Noclip",
+    Name = "🧱 베리어 노클립",
     CurrentValue = false,
     Callback = function(Value)
         BarrierCanCollideT = Value
@@ -1828,7 +1721,7 @@ MainTab:CreateButton({
 })
 
 local AntiPCLDToggle = MainTab:CreateToggle({
-    Name = "🛡️ Anti-Kick (PCLD 방어)",
+    Name = "🛡️ 안티 킥 (pcld 없애는거임)",
     CurrentValue = false,
     Callback = function(Value)
         AntiPCLDEnabled = Value
@@ -1863,14 +1756,14 @@ spawn(function()
 end)
 
 -- =============================================
--- [ 블롭 탭 (지하 킬 + 트레인 구찌) ]
+-- [ 블롭 탭 ]
 -- =============================================
 BlobTab:CreateSection("🦠 블롭 공격 대상")
 
 local BlobTargetDropdown = BlobTab:CreateDropdown({
-    Name = "List",
+    Name = "리스트",
     Options = playersInLoop1V,
-    CurrentOption = {"OPEN"},
+    CurrentOption = {"열기"},
     MultipleOptions = true,
     Flag = "BlobTargetDropdown",
     Callback = function(Options)
@@ -1879,8 +1772,8 @@ local BlobTargetDropdown = BlobTab:CreateDropdown({
 })
 
 BlobTab:CreateInput({
-    Name = "Add (자동완성)",
-    PlaceholderText = "닉네임 일부 입력",
+    Name = "추가",
+    PlaceholderText = "닉네임 입력",
     RemoveTextAfterFocusLost = true,
     Callback = function(Value)
         if not Value or Value == "" then return end
@@ -1974,16 +1867,11 @@ BlobTab:CreateButton({
     end
 })
 
-BlobTab:CreateSection("⚔️ 블롭 수동 공격 (List 대상)")
+BlobTab:CreateSection("⚔️ 블롭 공격 (List 대상)")
 
 BlobTab:CreateButton({
-    Name = "💀 블롭 킬 (지하 -9999999) [TP 자동]",
+    Name = "💀 블롭 킬 (Grab+Release) [TP 자동]",
     Callback = function() BlobAttackAll("kill") end
-})
-
-BlobTab:CreateButton({
-    Name = "👢 블롭 킥 (오너쉽+매스리스) [TP 자동]",
-    Callback = function() BlobAttackAll("kick") end
 })
 
 BlobTab:CreateButton({
@@ -2006,62 +1894,36 @@ BlobTab:CreateButton({
     Callback = function() BlobAttackAll("drop") end
 })
 
-BlobTab:CreateSection("🔄 블롭 자동 루프")
-
-local BlobLoopKillToggle = BlobTab:CreateToggle({
-    Name = "🔄 블롭 자동 킬 (지하) [TP 자동]",
-    CurrentValue = false,
-    Callback = function(Value)
-        blobLoopKillT = Value
-        if blobLoopKillT then
-            if blobLoopKickT then
-                blobLoopKickT = false
-                BlobLoopKickToggle:Set(false)
-            end
-            BlobLoopKill()
-            Rayfield:Notify({Title = "블롭 킬", Content = "자동 루프 시작 (지하 -9999999)", Duration = 2})
-        else
-            if blobKillThread then
-                task.cancel(blobKillThread)
-                blobKillThread = nil
-            end
-            Rayfield:Notify({Title = "블롭 킬", Content = "자동 루프 종료", Duration = 2})
-        end
-    end
-})
+BlobTab:CreateSection("🔄 블롭 자동 킥")
 
 local BlobLoopKickToggle = BlobTab:CreateToggle({
-    Name = "🔄 블롭 자동 킥 (매스리스) [TP 자동]",
+    Name = "🔄 루프 킥",
     CurrentValue = false,
     Callback = function(Value)
-        blobLoopKickT = Value
-        if blobLoopKickT then
-            if blobLoopKillT then
-                blobLoopKillT = false
-                BlobLoopKillToggle:Set(false)
-            end
+        blobLoopT = Value
+        if blobLoopT then
             BlobLoopKick()
-            Rayfield:Notify({Title = "블롭 킥", Content = "자동 루프 시작 (매스리스)", Duration = 2})
+            Rayfield:Notify({Title = "블롭 킥", Content = "자동 루프 시작 (원거리 TP)", Duration = 2})
         else
-            if blobKickThread then
-                task.cancel(blobKickThread)
-                blobKickThread = nil
+            if blobLoopThread then
+                task.cancel(blobLoopThread)
+                blobLoopThread = nil
             end
             Rayfield:Notify({Title = "블롭 킥", Content = "자동 루프 종료", Duration = 2})
         end
     end
 })
 
-BlobTab:CreateSection("🚂 구찌 설정")
+BlobTab:CreateSection("✨ 구찌 설정")
 
 local AutoGucciToggle = BlobTab:CreateToggle({
-    Name = "Auto-Gucci (블롭, y=9999)",
+    Name = "오토 구찌",
     CurrentValue = false,
     Callback = function(Value)
         AutoGucciT = Value
         if AutoGucciT then
             task.spawn(AutoGucciF)
-            Rayfield:Notify({Title = "Gucci", Content = "블롭 구찌 활성화", Duration = 2})
+            Rayfield:Notify({Title = "Gucci", Content = "활성화 (y=9999)", Duration = 2})
         else
             if plr.Character and plr.Character:FindFirstChild("Humanoid") then
                 plr.Character.Humanoid.Sit = true
@@ -2077,33 +1939,13 @@ local AutoGucciToggle = BlobTab:CreateToggle({
     end
 })
 
-local TrainGucciToggle = BlobTab:CreateToggle({
-    Name = "🚂 Train Gucci (기차)",
-    CurrentValue = false,
-    Callback = function(Value)
-        AutoGucciTV2 = Value
-        if AutoGucciTV2 then
-            task.spawn(function()
-                while AutoGucciTV2 do
-                    AutoGucciFV2()
-                    task.wait(5)
-                end
-            end)
-            Rayfield:Notify({Title = "Train Gucci", Content = "기차 구찌 활성화", Duration = 2})
-        else
-            sitJumpT = false
-            Rayfield:Notify({Title = "Train Gucci", Content = "비활성화", Duration = 2})
-        end
-    end
-})
-
 -- =============================================
 -- [ 그랩 탭 ]
 -- =============================================
 GrabTab:CreateSection("🔄 그랩 공격")
 
 local LoopGrabToggle = GrabTab:CreateToggle({
-    Name = "🔄 Loop Grab (raw 기반)",
+    Name = "🔄 뤂 그랩 (작동 x)",
     CurrentValue = false,
     Callback = function(Value)
         AntiStruggleGrabT = Value
@@ -2118,7 +1960,7 @@ local LoopGrabToggle = GrabTab:CreateToggle({
 AuraTab:CreateSection("🌀 안티 스티키 아우라")
 
 local AntiStickyAuraToggle = AuraTab:CreateToggle({
-    Name = "Anti-Sticky Aura",
+    Name = "안티 스티키 아우라(표창같은거 없애는거임)",
     CurrentValue = false,
     Callback = function(Value)
         AntiStickyAuraT = Value
@@ -2138,11 +1980,11 @@ AuraTab:CreateParagraph({
 SecurityTab:CreateSection("🔰 방어 설정")
 
 local AntiVoidToggle = SecurityTab:CreateToggle({
-    Name = "Anti-Void",
+    Name = "안티 보이드",
     CurrentValue = true,
     Callback = function(Value)
         if Value then
-            Workspace.FallenPartsDestroyHeight = -50000
+            Workspace.FallenPartsDestroyHeight = -500000000
         else
             Workspace.FallenPartsDestroyHeight = -100
         end
@@ -2151,7 +1993,7 @@ local AntiVoidToggle = SecurityTab:CreateToggle({
 AntiVoidToggle:Set(true)
 
 local AntiMasslessToggle = SecurityTab:CreateToggle({
-    Name = "⚖️ Anti-Massless",
+    Name = "⚖️ 안티 마스리스",
     CurrentValue = false,
     Callback = function(Value)
         antiMasslessEnabled = Value
@@ -2161,7 +2003,7 @@ local AntiMasslessToggle = SecurityTab:CreateToggle({
 })
 
 local AntiBurnToggle = SecurityTab:CreateToggle({
-    Name = "🔥 Anti-Burn (시야개선)",
+    Name = "🔥 안티 불 (작동x)",
     CurrentValue = false,
     Callback = function(Value)
         AntiBurnV = Value
@@ -2171,7 +2013,7 @@ local AntiBurnToggle = SecurityTab:CreateToggle({
 })
 
 local AntiExplodeToggle = SecurityTab:CreateToggle({
-    Name = "💥 Anti-Explosion",
+    Name = "💥 안티 폭발",
     CurrentValue = false,
     Callback = function(Value)
         AntiExplosionT = Value
@@ -2189,7 +2031,7 @@ local AntiExplodeToggle = SecurityTab:CreateToggle({
 })
 
 local AntiPaintToggle = SecurityTab:CreateToggle({
-    Name = "🎨 Anti-Paint",
+    Name = "🎨 안티 페인트 (작동x)",
     CurrentValue = false,
     Callback = function(Value)
         AntiPaintT = Value
@@ -2199,44 +2041,60 @@ local AntiPaintToggle = SecurityTab:CreateToggle({
 })
 
 -- =============================================
--- [ 킥그랩 탭 ]
+-- [ 킥그랩 탭 - 리스트 방식 ]
 -- =============================================
-KickGrabTab:CreateSection("🎯 대상 선택")
+KickGrabTab:CreateSection("🎯 킥그랩 대상 리스트")
 
-local TargetList = {}
-for _, player in ipairs(Players:GetPlayers()) do
-    if player ~= plr then
-        table.insert(TargetList, player.Name)
-    end
-end
-
-local TargetDropdown = KickGrabTab:CreateDropdown({
-    Name = "대상 선택",
-    Options = TargetList,
-    CurrentOption = {"선택하세요"},
-    MultipleOptions = false,
-    Callback = function(Options)
-        local targetName = Options[1]
-        if targetName and targetName ~= "선택하세요" then
-            KickGrabState.Target = Players:FindFirstChild(targetName)
-            Rayfield:Notify({Title = "킥그랩", Content = "대상: " .. targetName, Duration = 2})
-        end
-    end
+local KickGrabTargetDropdown = KickGrabTab:CreateDropdown({
+    Name = "킥 그랩 리스트",
+    Options = kickGrabTargetList,
+    CurrentOption = {"열기"},
+    MultipleOptions = true,
+    Callback = function(Options) end
 })
 
 KickGrabTab:CreateInput({
-    Name = "대상 입력 (자동완성)",
+    Name = "Add (자동완성)",
     PlaceholderText = "닉네임 일부 입력",
     RemoveTextAfterFocusLost = true,
     Callback = function(Value)
         if not Value or Value == "" then return end
+        
         local target = findPlayerByPartialName(Value)
-        if target then
-            KickGrabState.Target = target
-            Rayfield:Notify({Title = "킥그랩", Content = "대상: " .. target.Name, Duration = 2})
-        else
-            Rayfield:Notify({Title = "오류", Content = "플레이어를 찾을 수 없음", Duration = 2})
+        if not target then
+            Rayfield:Notify({Title = "킥그랩", Content = "플레이어를 찾을 수 없음", Duration = 2})
+            return
         end
+        
+        for _, name in ipairs(kickGrabTargetList) do
+            if name == target.Name then
+                Rayfield:Notify({Title = "킥그랩", Content = "이미 리스트에 있음", Duration = 2})
+                return
+            end
+        end
+        
+        table.insert(kickGrabTargetList, target.Name)
+        KickGrabTargetDropdown:Refresh(kickGrabTargetList, true)
+        Rayfield:Notify({Title = "킥그랩", Content = "추가: " .. target.Name, Duration = 2})
+    end
+})
+
+KickGrabTab:CreateInput({
+    Name = "Remove",
+    PlaceholderText = "닉네임 입력",
+    RemoveTextAfterFocusLost = true,
+    Callback = function(Value)
+        if not Value or Value == "" then return end
+        
+        for i, name in ipairs(kickGrabTargetList) do
+            if name:lower() == Value:lower() then
+                table.remove(kickGrabTargetList, i)
+                KickGrabTargetDropdown:Refresh(kickGrabTargetList, true)
+                Rayfield:Notify({Title = "킥그랩", Content = "제거: " .. name, Duration = 2})
+                return
+            end
+        end
+        Rayfield:Notify({Title = "킥그랩", Content = "리스트에 없는 이름", Duration = 2})
     end
 })
 
@@ -2244,8 +2102,8 @@ KickGrabTab:CreateSection("⚙️ 모드 설정")
 
 local ModeDropdown = KickGrabTab:CreateDropdown({
     Name = "모드 선택",
-    Options = {"Camera", "Up", "Down"},
-    CurrentOption = {"Camera"},
+    Options = {"카메라", "위", "아래"},
+    CurrentOption = {"카메라"},
     MultipleOptions = false,
     Callback = function(Options)
         KickGrabState.Mode = Options[1]
@@ -2254,7 +2112,7 @@ local ModeDropdown = KickGrabTab:CreateDropdown({
 })
 
 local DistInput = KickGrabTab:CreateInput({
-    Name = "Camera 거리",
+    Name = "카메라 거리",
     CurrentValue = "19",
     PlaceholderText = "거리 (기본 19)",
     RemoveTextAfterFocusLost = false,
@@ -2269,18 +2127,18 @@ local DistInput = KickGrabTab:CreateInput({
 KickGrabTab:CreateSection("🎮 실행")
 
 local KickGrabToggle = KickGrabTab:CreateToggle({
-    Name = "👢 Kick Grab",
+    Name = "👢 킥 그랩",
     CurrentValue = false,
     Callback = function(Value)
-        if Value and not KickGrabState.Target then
-            Rayfield:Notify({Title = "오류", Content = "대상을 먼저 선택하세요", Duration = 2})
+        if Value and #kickGrabTargetList == 0 then
+            Rayfield:Notify({Title = "오류", Content = "대상 리스트가 비어있습니다", Duration = 2})
             KickGrabToggle:Set(false)
             return
         end
         KickGrabState.Looping = Value
         if Value then
             task.spawn(ExecuteKickGrabLoop)
-            Rayfield:Notify({Title = "킥그랩", Content = "활성화 (원거리 TP)", Duration = 2})
+            Rayfield:Notify({Title = "킥그랩", Content = "활성화 (" .. #kickGrabTargetList .. "명)", Duration = 2})
         else
             Rayfield:Notify({Title = "킥그랩", Content = "비활성화", Duration = 2})
         end
@@ -2288,7 +2146,7 @@ local KickGrabToggle = KickGrabTab:CreateToggle({
 })
 
 local AutoRagdollToggle = KickGrabTab:CreateToggle({
-    Name = "🔄 Auto Ragdoll",
+    Name = "🔄 오토 레그돌",
     CurrentValue = false,
     Callback = function(Value)
         KickGrabState.AutoRagdoll = Value
@@ -2297,18 +2155,18 @@ local AutoRagdollToggle = KickGrabTab:CreateToggle({
 })
 
 local SnowBallToggle = KickGrabTab:CreateToggle({
-    Name = "❄️ SnowBall Ragdoll",
+    Name = "❄️ 스노우볼 레그돌",
     CurrentValue = false,
     Callback = function(Value)
-        if Value and not KickGrabState.Target then
-            Rayfield:Notify({Title = "오류", Content = "대상을 먼저 선택하세요", Duration = 2})
+        if Value and #kickGrabTargetList == 0 then
+            Rayfield:Notify({Title = "오류", Content = "대상 리스트가 비어있습니다", Duration = 2})
             SnowBallToggle:Set(false)
             return
         end
         KickGrabState.SnowBallLooping = Value
         if Value then
             task.spawn(ExecuteSnowballLoop)
-            Rayfield:Notify({Title = "스노우볼", Content = "활성화", Duration = 2})
+            Rayfield:Notify({Title = "스노우볼", Content = "활성화 (" .. #kickGrabTargetList .. "명)", Duration = 2})
         else
             Rayfield:Notify({Title = "스노우볼", Content = "비활성화", Duration = 2})
         end
@@ -2321,9 +2179,9 @@ local SnowBallToggle = KickGrabTab:CreateToggle({
 TargetTab:CreateSection("🎯 킬 플레이어 정하기")
 
 local TargetListDropdown = TargetTab:CreateDropdown({
-    Name = "Target List",
+    Name = "리스트",
     Options = targetList,
-    CurrentOption = {"OPEN"},
+    CurrentOption = {"열기"},
     MultipleOptions = true,
     Callback = function(Options)
         targetList = Options
@@ -2331,8 +2189,8 @@ local TargetListDropdown = TargetTab:CreateDropdown({
 })
 
 TargetTab:CreateInput({
-    Name = "Add (자동완성)",
-    PlaceholderText = "닉네임 일부 입력",
+    Name = "추가",
+    PlaceholderText = "닉네임 입력",
     RemoveTextAfterFocusLost = true,
     Callback = function(Value)
         if not Value or Value == "" then return end
@@ -2378,20 +2236,20 @@ TargetTab:CreateInput({
 TargetTab:CreateSection("⚔️ 실행")
 
 TargetTab:CreateButton({
-    Name = "💀 Kill",
+    Name = "💀 킬",
     Callback = function() manualKill("kill") end
 })
 
 TargetTab:CreateButton({
-    Name = "👢 Kick",
+    Name = "👢 킥(작동x)",
     Callback = function() manualKill("kick") end
 })
 
 -- 팔다리 제거 드롭다운
 local DeletePartDropdown = TargetTab:CreateDropdown({
     Name = "🦴 제거할 부위 선택",
-    Options = {"Arm/Leg", "Legs", "Arms"},
-    CurrentOption = {"Arm/Leg"},
+    Options = {"팔/다리", "모든 다리", "모든 팔"},
+    CurrentOption = {"팔/다리"},
     Callback = function(Options)
         selectedDeletePart = Options[1]
     end
@@ -2468,7 +2326,7 @@ BlobNotifyToggle:Set(true)
 SettingsTab:CreateSection("⚙️ 설정")
 
 SettingsTab:CreateToggle({
-    Name = "IY UI 숨기기",
+    Name = "인야숨기기(작동x)",
     CurrentValue = true,
     Callback = function(Value)
         if _G and _G.ToggleUI then
@@ -2503,6 +2361,6 @@ bringRayfieldToFront()
 
 Rayfield:Notify({
     Title = "🚀 로드 완료",
-    Content = "PC: Z키 텔레포트 | 블롭 지하 킬 + 트레인 구찌 추가됨",
+    Content = "PC: Z키 텔레포트 | 킥그랩 리스트 방식 적용",
     Duration = 5
 })
