@@ -1663,7 +1663,7 @@ end
 -- =============================================
 local Window = Rayfield:CreateWindow({
     Name = "FTAP 올인원 (PC/모바일 겸용)",
-    LoadingTitle = "킥그랩 + 안티불 + 안티폭발 + 안티스티키 + 안티킥 + 블롭TP + 시선TP + 안티페인트",
+    LoadingTitle = "킥그랩 + 안티불 + 안티폭발 + 안티스티키 + 안티킥 + 블롭TP + 시선TP + 안티페인트 + 블롭루프킬",
     ConfigurationSaving = { Enabled = false }
 })
 
@@ -1894,22 +1894,22 @@ BlobTab:CreateButton({
     Callback = function() BlobAttackAll("drop") end
 })
 
-BlobTab:CreateSection("🔄 블롭 자동 킥")
+BlobTab:CreateSection("🔄 블롭 자동 루프킬 (추가됨)")
 
-local BlobLoopKickToggle = BlobTab:CreateToggle({
-    Name = "🔄 블롭 자동 킥 (루프) [TP 자동]",
+local BlobLoopKillToggle = BlobTab:CreateToggle({
+    Name = "🔄 블롭 자동 루프킬 (원거리 TP)",
     CurrentValue = false,
     Callback = function(Value)
         blobLoopT = Value
         if blobLoopT then
             BlobLoopKick()
-            Rayfield:Notify({Title = "블롭 킥", Content = "자동 루프 시작 (원거리 TP)", Duration = 2})
+            Rayfield:Notify({Title = "블롭 루프킬", Content = "자동 루프 시작 (원거리 TP)", Duration = 2})
         else
             if blobLoopThread then
                 task.cancel(blobLoopThread)
                 blobLoopThread = nil
             end
-            Rayfield:Notify({Title = "블롭 킥", Content = "자동 루프 종료", Duration = 2})
+            Rayfield:Notify({Title = "블롭 루프킬", Content = "자동 루프 종료", Duration = 2})
         end
     end
 })
@@ -2361,6 +2361,6 @@ bringRayfieldToFront()
 
 Rayfield:Notify({
     Title = "🚀 로드 완료",
-    Content = "PC: Z키 텔레포트 | 킥그랩 리스트 방식 적용",
+    Content = "PC: Z키 텔레포트 | 블롭 루프킬 추가됨",
     Duration = 5
 })
