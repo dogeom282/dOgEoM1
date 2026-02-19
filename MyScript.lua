@@ -1751,7 +1751,7 @@ end
 -- [ Rayfield UI 설정 ]
 -- =============================================
 local Window = Rayfield:CreateWindow({
-    Name = "FTAP-도검",
+    Name = "FTAP-도검 (블롭킬+트레인)",
     LoadingTitle = "제작자: sos107ppq",
     ConfigurationSaving = { Enabled = false }
 })
@@ -1766,7 +1766,7 @@ local TargetTab = Window:CreateTab("킬 플레이어 정하기", 4483362458)
 local NotifyTab = Window:CreateTab("🔔 알림", 4483362458)
 local KickGrabTab = Window:CreateTab("👢 킥그랩", 4483362458)
 local SettingsTab = Window:CreateTab("설정", 4483362458)
-local TrainTab = Window:CreateTab("🚂 트레인", 4483362458)  -- 🚂 새 탭 추가!
+local TrainTab = Window:CreateTab("🚂 트레인", 4483362458)
 
 -- =============================================
 -- [ 메인 탭 ]
@@ -1783,7 +1783,7 @@ local AntiGrabToggle = MainTab:CreateToggle({
 })
 
 MainTab:CreateButton({
-    Name = "🔓 쓰지마세요",
+    Name = "🔓 즉시 해제",
     Callback = ManualRelease
 })
 
@@ -1811,13 +1811,13 @@ MainTab:CreateButton({
 })
 
 local AntiPCLDToggle = MainTab:CreateToggle({
-    Name = "🛡️ 안티 킥 (pcld 없애는거임)",
+    Name = "🛡️ 안티 킥 (PCLD 방어)",
     CurrentValue = false,
     Callback = function(Value)
         AntiPCLDEnabled = Value
         if Value then
             setupAntiPCLD()
-            Rayfield:Notify({Title = "안티킥", Content = "활성화 - PCLD 감지 시 자동 방어", Duration = 2})
+            Rayfield:Notify({Title = "안티킥", Content = "활성화", Duration = 2})
         else
             Rayfield:Notify({Title = "안티킥", Content = "비활성화", Duration = 2})
         end
@@ -1846,7 +1846,7 @@ spawn(function()
 end)
 
 -- =============================================
--- [ 블롭 탭 ]
+-- [ 블롭 탭 (킬 버튼 포함) ]
 -- =============================================
 BlobTab:CreateSection("🦠 블롭 공격 대상")
 
@@ -1957,8 +1957,12 @@ BlobTab:CreateButton({
     end
 })
 
+-- =============================================
+-- [ ⚔️ 블롭 공격 (킬 버튼 원위치!) ]
+-- =============================================
 BlobTab:CreateSection("⚔️ 블롭 공격 (List 대상)")
 
+-- 💀 킬 버튼 (여기에 있습니다!)
 BlobTab:CreateButton({
     Name = "💀 블롭 킬 (Grab+Release) [TP 자동]",
     Callback = function() BlobAttackAll("kill") end
@@ -1993,7 +1997,7 @@ local BlobLoopKickToggle = BlobTab:CreateToggle({
         blobLoopT = Value
         if blobLoopT then
             BlobLoopKick()
-            Rayfield:Notify({Title = "블롭 킥", Content = "자동 루프 시작 (원거리 TP)", Duration = 2})
+            Rayfield:Notify({Title = "블롭 킥", Content = "자동 루프 시작", Duration = 2})
         else
             if blobLoopThread then
                 task.cancel(blobLoopThread)
@@ -2013,7 +2017,7 @@ local AutoGucciToggle = BlobTab:CreateToggle({
         AutoGucciT = Value
         if AutoGucciT then
             task.spawn(AutoGucciF)
-            Rayfield:Notify({Title = "Gucci", Content = "활성화 (y=9999)", Duration = 2})
+            Rayfield:Notify({Title = "Gucci", Content = "활성화", Duration = 2})
         else
             if plr.Character and plr.Character:FindFirstChild("Humanoid") then
                 plr.Character.Humanoid.Sit = true
@@ -2092,7 +2096,7 @@ TrainTab:CreateButton({
 GrabTab:CreateSection("🔄 그랩 공격")
 
 local LoopGrabToggle = GrabTab:CreateToggle({
-    Name = "🔄 뤂 그랩 (작동 x)",
+    Name = "🔄 루프 그랩",
     CurrentValue = false,
     Callback = function(Value)
         AntiStruggleGrabT = Value
@@ -2107,7 +2111,7 @@ local LoopGrabToggle = GrabTab:CreateToggle({
 AuraTab:CreateSection("🌀 안티 스티키 아우라")
 
 local AntiStickyAuraToggle = AuraTab:CreateToggle({
-    Name = "안티 스티키 아우라(표창같은거 없애는거임)",
+    Name = "안티 스티키 아우라",
     CurrentValue = false,
     Callback = function(Value)
         AntiStickyAuraT = Value
@@ -2150,12 +2154,12 @@ local AntiMasslessToggle = SecurityTab:CreateToggle({
 })
 
 local AntiBurnToggle = SecurityTab:CreateToggle({
-    Name = "🔥 안티 불 (작동x)",
+    Name = "🔥 안티 불",
     CurrentValue = false,
     Callback = function(Value)
         AntiBurnV = Value
         AntiBurn()
-        Rayfield:Notify({Title = "안티 불", Content = Value and "활성화 (머리 위 100스터드)" or "비활성화", Duration = 2})
+        Rayfield:Notify({Title = "안티 불", Content = Value and "활성화" or "비활성화", Duration = 2})
     end
 })
 
@@ -2178,17 +2182,17 @@ local AntiExplodeToggle = SecurityTab:CreateToggle({
 })
 
 local AntiPaintToggle = SecurityTab:CreateToggle({
-    Name = "🎨 안티 페인트 (작동x)",
+    Name = "🎨 안티 페인트",
     CurrentValue = false,
     Callback = function(Value)
         AntiPaintT = Value
         AntiPaintF()
-        Rayfield:Notify({Title = "안티 페인트", Content = Value and "활성화 (주변 페인트 제거)" or "비활성화", Duration = 2})
+        Rayfield:Notify({Title = "안티 페인트", Content = Value and "활성화" or "비활성화", Duration = 2})
     end
 })
 
 -- =============================================
--- [ 킥그랩 탭 - 리스트 방식 ]
+-- [ 킥그랩 탭 ]
 -- =============================================
 KickGrabTab:CreateSection("🎯 킥그랩 대상 리스트")
 
@@ -2388,7 +2392,7 @@ TargetTab:CreateButton({
 })
 
 TargetTab:CreateButton({
-    Name = "👢 킥(작동x)",
+    Name = "👢 킥",
     Callback = function() manualKill("kick") end
 })
 
@@ -2473,7 +2477,7 @@ BlobNotifyToggle:Set(true)
 SettingsTab:CreateSection("⚙️ 설정")
 
 SettingsTab:CreateToggle({
-    Name = "인야숨기기(작동x)",
+    Name = "IY UI 숨기기",
     CurrentValue = true,
     Callback = function(Value)
         if _G and _G.ToggleUI then
@@ -2508,6 +2512,6 @@ bringRayfieldToFront()
 
 Rayfield:Notify({
     Title = "🚀 로드 완료",
-    Content = "트레인 구찌 추가됨 | 🚂 새 탭 확인",
+    Content = "블롭 킬 + 트레인 구찌",
     Duration = 5
 })
