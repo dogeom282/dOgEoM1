@@ -825,8 +825,8 @@ local blobmanInstanceS = nil
 local sitJumpT = false
 local AutoGucciT = false
 local ragdollLoopD = false
-local blobKillLoopT = false
-local blobKickLoopT = false
+local blobKillLoopT = false  -- 블롭 킬 루프
+local blobKickLoopT = false   -- 블롭 킥 루프
 local blobKillThread = nil
 local blobKickThread = nil
 local antiMasslessEnabled = false
@@ -1009,7 +1009,7 @@ local function BlobRealKill(targetPlayer)
 end
 
 -- =============================================
--- [ 블롭 킬 루프 ]
+-- [ 블롭 킬 루프 (수정됨 - 매번 블롭 확인) ]
 -- =============================================
 local function BlobLoopKill()
     if #playersInLoop1V == 0 then
@@ -1021,6 +1021,15 @@ local function BlobLoopKill()
     
     blobKillThread = task.spawn(function()
         while blobKillLoopT do
+            -- 매 루프마다 블롭 다시 확인
+            UpdateCurrentBlobman()
+            
+            if not currentBlobS then
+                Rayfield:Notify({Title = "오류", Content = "블롭을 잃어버림", Duration = 2})
+                blobKillLoopT = false
+                break
+            end
+            
             if currentIndex > #playersInLoop1V then
                 currentIndex = 1
             end
@@ -1028,7 +1037,7 @@ local function BlobLoopKill()
             local targetName = playersInLoop1V[currentIndex]
             local targetPlayer = Players:FindFirstChild(targetName)
             
-            if targetPlayer then
+            if targetPlayer and targetPlayer.Character then
                 BlobRealKill(targetPlayer)
             end
             
@@ -1039,7 +1048,7 @@ local function BlobLoopKill()
 end
 
 -- =============================================
--- [ 블롭 킥 루프 ]
+-- [ 블롭 킥 루프 (수정됨 - 매번 블롭 확인) ]
 -- =============================================
 local function BlobLoopKick()
     if #playersInLoop1V == 0 then
@@ -1051,6 +1060,15 @@ local function BlobLoopKick()
     
     blobKickThread = task.spawn(function()
         while blobKickLoopT do
+            -- 매 루프마다 블롭 다시 확인
+            UpdateCurrentBlobman()
+            
+            if not currentBlobS then
+                Rayfield:Notify({Title = "오류", Content = "블롭을 잃어버림", Duration = 2})
+                blobKickLoopT = false
+                break
+            end
+            
             if currentIndex > #playersInLoop1V then
                 currentIndex = 1
             end
@@ -1759,7 +1777,7 @@ end
 -- [ Rayfield UI 설정 ]
 -- =============================================
 local Window = Rayfield:CreateWindow({
-    Name = "FTAP-도검 (실험용 킬 그대로)",
+    Name = "FTAP-도검 (킬 루프 수정)",
     LoadingTitle = "제작자: sos107ppq",
     ConfigurationSaving = { Enabled = false }
 })
@@ -1854,7 +1872,7 @@ spawn(function()
 end)
 
 -- =============================================
--- [ 블롭 탭 (킬 버튼 + 루프킬) ]
+-- [ 블롭 탭 (수정된 루프킬) ]
 -- =============================================
 BlobTab:CreateSection("🦠 블롭 공격 대상")
 
@@ -1966,7 +1984,7 @@ BlobTab:CreateButton({
 })
 
 -- =============================================
--- [ ⚔️ 블롭 공격 (킬 버튼 + 루프킬) ]
+-- [ ⚔️ 블롭 수동 공격 ]
 -- =============================================
 BlobTab:CreateSection("⚔️ 블롭 수동 공격")
 
@@ -1995,7 +2013,7 @@ BlobTab:CreateButton({
     Callback = function() BlobAttackAll("drop") end
 })
 
-BlobTab:CreateSection("🔄 블롭 자동 루프")
+BlobTab:CreateSection("🔄 블롭 자동 루프 (수정됨)")
 
 local BlobKillLoopToggle = BlobTab:CreateToggle({
     Name = "🔄 블롭 자동 킬 (루프)",
@@ -2551,6 +2569,6 @@ bringRayfieldToFront()
 
 Rayfield:Notify({
     Title = "🚀 로드 완료",
-    Content = "루프킬 + 트레인",
+    Content = "킬 루프 수정 완료! 이제 됩니다",
     Duration = 5
 })
