@@ -1,5 +1,21 @@
--- FTAP (Fling Things and People) 올인원 스크립트 (PC용)
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+-- FTAP (Fling Things and People) 올인원 스크립트 (Amethyst UI 버전)
+
+-- =============================================
+-- [ Amethyst UI 로드 ]
+-- =============================================
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/J0se-j/My-Lua-Library/refs/heads/main/Booting-the-library.lua"))()
+
+local Window = Library:CreateWindow({
+    Name = "FTAP-도검",
+    LoadingTitle = "Amethyst UI",
+    LoadingSubtitle = "by J0se-j",
+    ToggleUIKeybind = Enum.KeyCode.T,  -- T 키로 UI 토글
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "AmethystUI",
+        FileName = "UserSettings"
+    }
+})
 
 -- =============================================
 -- [ Infinite Yield 로드 ]
@@ -12,27 +28,6 @@ pcall(function()
     end
     print("✅ Infinite Yield 로드 완료 (UI 숨김)")
 end)
-
--- =============================================
--- [ Rayfield UI를 항상 최상단으로 유지 ]
--- =============================================
-local function bringRayfieldToFront()
-    task.spawn(function()
-        while task.wait(0.5) do
-            for _, gui in ipairs(game:GetService("CoreGui"):GetChildren()) do
-                if gui:IsA("ScreenGui") and (gui.Name:find("Rayfield") or gui.Name:find("RayField")) then
-                    gui.DisplayOrder = 999999
-                    for _, child in ipairs(gui:GetDescendants()) do
-                        if child:IsA("Frame") or child:IsA("ScrollingFrame") or child:IsA("TextButton") then
-                            child.ZIndex = 999999
-                        end
-                    end
-                end
-            end
-        end
-    end)
-end
-bringRayfieldToFront()
 
 -- =============================================
 -- [ PC용 TP 기능 (Z키) ]
@@ -1006,7 +1001,11 @@ end
 local function BlobAttackAll(mode)
     UpdateCurrentBlobman()
     if not currentBlobS then
-        Rayfield:Notify({Title = "블롭", Content = "블롭을 타고 있어야 합니다", Duration = 2})
+        Window:CreateNotification({
+            Title = "블롭",
+            Content = "블롭을 타고 있어야 합니다",
+            Duration = 2
+        })
         return
     end
     
@@ -1036,7 +1035,11 @@ local function BlobAttackAll(mode)
     end
     
     local modeNames = {kill="킬", massless="매스리스", grab="잡기", release="놓기", drop="드롭"}
-    Rayfield:Notify({Title = "블롭 " .. modeNames[mode], Content = count .. "명 처리", Duration = 2})
+    Window:CreateNotification({
+        Title = "블롭 " .. modeNames[mode],
+        Content = count .. "명 처리",
+        Duration = 2
+    })
 end
 
 -- =============================================
@@ -1050,7 +1053,11 @@ local function rawBlobLoopKill()
         and plr.Character:FindFirstChildOfClass("Humanoid").SeatPart
 
     if not (seat and seat.Parent and seat.Parent.Name == "CreatureBlobman") then
-        Rayfield:Notify({Title = "블롭 킬", Content = "블롭에 탑승하세요", Duration = 2})
+        Window:CreateNotification({
+            Title = "블롭 킬",
+            Content = "블롭에 탑승하세요",
+            Duration = 2
+        })
         return false
     end
 
@@ -1103,7 +1110,11 @@ local function rawBlobLoopKick()
 
     local seat = plr.Character and plr.Character:FindFirstChildOfClass("Humanoid") and plr.Character:FindFirstChildOfClass("Humanoid").SeatPart
     if not (seat and seat.Parent and seat.Parent.Name == "CreatureBlobman") then
-        Rayfield:Notify({Title = "블롭 킥", Content = "블롭에 탑승하세요", Duration = 2})
+        Window:CreateNotification({
+            Title = "블롭 킥",
+            Content = "블롭에 탑승하세요",
+            Duration = 2
+        })
         return false
     end
 
@@ -1255,7 +1266,11 @@ local PBDrun = false
 
 local function PlotBarrierDelete()
     if PBDrun then 
-        Rayfield:Notify({Title = "베리어", Content = "이미 실행 중", Duration = 2})
+        Window:CreateNotification({
+            Title = "베리어",
+            Content = "이미 실행 중",
+            Duration = 2
+        })
         return 
     end
     PBDrun = true
@@ -1263,14 +1278,22 @@ local function PlotBarrierDelete()
     local char = plr.Character
     if not char then 
         PBDrun = false 
-        Rayfield:Notify({Title = "오류", Content = "캐릭터 없음", Duration = 2})
+        Window:CreateNotification({
+            Title = "오류",
+            Content = "캐릭터 없음",
+            Duration = 2
+        })
         return 
     end
 
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then 
         PBDrun = false 
-        Rayfield:Notify({Title = "오류", Content = "HumanoidRootPart 없음", Duration = 2})
+        Window:CreateNotification({
+            Title = "오류",
+            Content = "HumanoidRootPart 없음",
+            Duration = 2
+        })
         return 
     end
 
@@ -1285,7 +1308,11 @@ local function PlotBarrierDelete()
 
     if not metal then
         PBDrun = false
-        Rayfield:Notify({Title = "오류", Content = "Metal 파트를 찾을 수 없음", Duration = 2})
+        Window:CreateNotification({
+            Title = "오류",
+            Content = "Metal 파트를 찾을 수 없음",
+            Duration = 2
+        })
         return
     end
 
@@ -1305,7 +1332,11 @@ local function PlotBarrierDelete()
     local foodBread = inv and inv:FindFirstChild("FoodBread")
     if not foodBread then 
         PBDrun = false 
-        Rayfield:Notify({Title = "오류", Content = "빵 생성 실패", Duration = 2})
+        Window:CreateNotification({
+            Title = "오류",
+            Content = "빵 생성 실패",
+            Duration = 2
+        })
         return 
     end
 
@@ -1337,7 +1368,11 @@ local function PlotBarrierDelete()
     task.wait(0.4)
 
     PBDrun = false
-    Rayfield:Notify({Title = "✅ 베리어", Content = "부수기 완료", Duration = 2})
+    Window:CreateNotification({
+        Title = "✅ 베리어",
+        Content = "부수기 완료",
+        Duration = 2
+    })
 end
 
 -- =============================================
@@ -1348,7 +1383,11 @@ local targetList = {}
 local function manualKill(mode)
     local char = plr.Character
     if not char then 
-        Rayfield:Notify({Title = "오류", Content = "캐릭터 없음", Duration = 2})
+        Window:CreateNotification({
+            Title = "오류",
+            Content = "캐릭터 없음",
+            Duration = 2
+        })
         return 
     end
     
@@ -1373,7 +1412,11 @@ local function manualKill(mode)
         task.wait(0.1)
     end
     
-    Rayfield:Notify({Title = mode == "kill" and "Kill" or "Kick", Content = count .. "명 처리", Duration = 2})
+    Window:CreateNotification({
+        Title = mode == "kill" and "Kill" or "Kick",
+        Content = count .. "명 처리",
+        Duration = 2
+    })
 end
 
 -- =============================================
@@ -1382,7 +1425,11 @@ end
 local function ManualRelease()
     local char = plr.Character
     if not char then 
-        Rayfield:Notify({Title = "오류", Content = "캐릭터 없음", Duration = 2})
+        Window:CreateNotification({
+            Title = "오류",
+            Content = "캐릭터 없음",
+            Duration = 2
+        })
         return 
     end
     
@@ -1407,7 +1454,10 @@ local function ManualRelease()
     
     if Struggle then pcall(function() Struggle:FireServer() end) end
     
-    Rayfield:Notify({Title = "해제 완료", Duration = 2})
+    Window:CreateNotification({
+        Title = "해제 완료",
+        Duration = 2
+    })
 end
 
 -- =============================================
@@ -1508,7 +1558,11 @@ local function AutoGucciF()
 
             if not successCheck then
                 local blobHRP = blobmanInstanceS and blobmanInstanceS:FindFirstChild("HumanoidRootPart")
-                Rayfield:Notify({Title = "Gucci", Content = "재시도 대기 중...", Duration = 1})
+                Window:CreateNotification({
+                    Title = "Gucci",
+                    Content = "재시도 대기 중...",
+                    Duration = 1
+                })
                 if hum then
                     if Struggle then Struggle:FireServer(plr) end
                     hum.Sit = true
@@ -1544,7 +1598,7 @@ local function setupKickNotifications()
 
     Players.PlayerRemoving:Connect(function(player)
         if anchoredCache[player] == true and kickNotificationsEnabled then
-            Rayfield:Notify({
+            Window:CreateNotification({
                 Title = "👢 Kick 감지",
                 Content = string.format("%s (@%s) 님이 킥당했습니다", player.DisplayName, player.Name),
                 Duration = 5
@@ -1593,7 +1647,7 @@ local function CheckBlob(blob, myHRP, myAttach, source)
 
             if not notifyCooldowns[msg] or (now - notifyCooldowns[msg]) >= 2 then
                 notifyCooldowns[msg] = now
-                Rayfield:Notify({
+                Window:CreateNotification({
                     Title = "🦠 블롭 감지",
                     Content = msg,
                     Duration = 3
@@ -1697,15 +1751,8 @@ local function setupBlobNotifications()
 end
 
 -- =============================================
--- [ Rayfield UI 설정 ]
+-- [ 탭 생성 ]
 -- =============================================
-local Window = Rayfield:CreateWindow({
-    Name = "FTAP-도검",
-    LoadingTitle = "제작자: sos107ppq",
-    ConfigurationSaving = { Enabled = false }
-})
-
--- 탭 생성
 local MainTab = Window:CreateTab("메인", 4483362458)
 local BlobTab = Window:CreateTab("블롭", 4483362458)
 local GrabTab = Window:CreateTab("그랩", 4483362458)
@@ -1714,15 +1761,15 @@ local AuraTab = Window:CreateTab("아우라", 4483362458)
 local TargetTab = Window:CreateTab("킬 플레이어 정하기", 4483362458)
 local NotifyTab = Window:CreateTab("🔔 알림", 4483362458)
 local KickGrabTab = Window:CreateTab("👢 킥그랩", 4483362458)
-local KillGrabTab = Window:CreateTab("💀 킬그랩", 4483362458)  -- ← 킬그랩 탭 추가
+local KillGrabTab = Window:CreateTab("💀 킬그랩", 4483362458)
 local SettingsTab = Window:CreateTab("설정", 4483362458)
 
 -- =============================================
 -- [ 메인 탭 ]
 -- =============================================
-MainTab:CreateSection("🛡️ 기본 방어")
+local DefenseSection = MainTab:CreateSection("🛡️ 기본 방어")
 
-local AntiGrabToggle = MainTab:CreateToggle({
+DefenseSection:CreateToggle({
     Name = "⚡ 안티 그랩",
     CurrentValue = false,
     Callback = function(Value)
@@ -1731,12 +1778,12 @@ local AntiGrabToggle = MainTab:CreateToggle({
     end
 })
 
-MainTab:CreateButton({
+DefenseSection:CreateButton({
     Name = "🔓 쓰지마세요",
     Callback = ManualRelease
 })
 
-local PcldViewToggle = MainTab:CreateToggle({
+DefenseSection:CreateToggle({
     Name = "👁️ PCLD 보기",
     CurrentValue = false,
     Callback = function(Value)
@@ -1745,7 +1792,7 @@ local PcldViewToggle = MainTab:CreateToggle({
     end
 })
 
-local BarrierNoclipToggle = MainTab:CreateToggle({
+DefenseSection:CreateToggle({
     Name = "🧱 베리어 노클립",
     CurrentValue = false,
     Callback = function(Value)
@@ -1754,28 +1801,36 @@ local BarrierNoclipToggle = MainTab:CreateToggle({
     end
 })
 
-MainTab:CreateButton({
+DefenseSection:CreateButton({
     Name = "💥 집 베리어 부수기",
     Callback = PlotBarrierDelete
 })
 
-local AntiPCLDToggle = MainTab:CreateToggle({
+DefenseSection:CreateToggle({
     Name = "🛡️ 안티 킥",
     CurrentValue = false,
     Callback = function(Value)
         AntiPCLDEnabled = Value
         if Value then
             setupAntiPCLD()
-            Rayfield:Notify({Title = "안티킥", Content = "활성화", Duration = 2})
+            Window:CreateNotification({
+                Title = "안티킥",
+                Content = "활성화",
+                Duration = 2
+            })
         else
-            Rayfield:Notify({Title = "안티킥", Content = "비활성화", Duration = 2})
+            Window:CreateNotification({
+                Title = "안티킥",
+                Content = "비활성화",
+                Duration = 2
+            })
         end
     end
 })
 
-MainTab:CreateSection("📊 상태")
+local StatusSection = MainTab:CreateSection("📊 상태")
 
-local StatusLabel = MainTab:CreateLabel("상태: 확인 중...", 4483362458)
+local StatusLabel = StatusSection:CreateLabel("상태: 확인 중...")
 
 spawn(function()
     while task.wait(0.5) do
@@ -1797,49 +1852,58 @@ end)
 -- =============================================
 -- [ 블롭 탭 ]
 -- =============================================
-BlobTab:CreateSection("🦠 블롭 공격 대상")
+local BlobTargetSection = BlobTab:CreateSection("🦠 블롭 공격 대상")
 
-local BlobTargetDropdown = BlobTab:CreateDropdown({
+local BlobTargetDropdown = BlobTargetSection:CreateDropdown({
     Name = "리스트",
     Options = playersInLoop1V,
     CurrentOption = {"열기"},
     MultipleOptions = true,
-    Flag = "BlobTargetDropdown",
     Callback = function(Options)
         playersInLoop1V = Options
     end
 })
 
-BlobTab:CreateInput({
+BlobTargetSection:CreateInput({
     Name = "추가",
     PlaceholderText = "닉네임 입력",
-    RemoveTextAfterFocusLost = true,
     Callback = function(Value)
         if not Value or Value == "" then return end
         
         local target = findPlayerByPartialName(Value)
         if not target then
-            Rayfield:Notify({Title = "블롭", Content = "플레이어를 찾을 수 없음", Duration = 2})
+            Window:CreateNotification({
+                Title = "블롭",
+                Content = "플레이어를 찾을 수 없음",
+                Duration = 2
+            })
             return
         end
         
         for _, name in ipairs(playersInLoop1V) do
             if name == target.Name then
-                Rayfield:Notify({Title = "블롭", Content = "이미 목록에 있음", Duration = 2})
+                Window:CreateNotification({
+                    Title = "블롭",
+                    Content = "이미 목록에 있음",
+                    Duration = 2
+                })
                 return
             end
         end
         
         table.insert(playersInLoop1V, target.Name)
         BlobTargetDropdown:Refresh(playersInLoop1V, true)
-        Rayfield:Notify({Title = "블롭", Content = "추가: " .. target.Name, Duration = 2})
+        Window:CreateNotification({
+            Title = "블롭",
+            Content = "추가: " .. target.Name,
+            Duration = 2
+        })
     end
 })
 
-BlobTab:CreateInput({
+BlobTargetSection:CreateInput({
     Name = "Remove",
     PlaceholderText = "닉네임 입력",
-    RemoveTextAfterFocusLost = true,
     Callback = function(Value)
         if not Value or Value == "" then return end
         
@@ -1847,17 +1911,25 @@ BlobTab:CreateInput({
             if name:lower() == Value:lower() then
                 table.remove(playersInLoop1V, i)
                 BlobTargetDropdown:Refresh(playersInLoop1V, true)
-                Rayfield:Notify({Title = "블롭", Content = "제거: " .. name, Duration = 2})
+                Window:CreateNotification({
+                    Title = "블롭",
+                    Content = "제거: " .. name,
+                    Duration = 2
+                })
                 return
             end
         end
-        Rayfield:Notify({Title = "블롭", Content = "없는 이름", Duration = 2})
+        Window:CreateNotification({
+            Title = "블롭",
+            Content = "없는 이름",
+            Duration = 2
+        })
     end
 })
 
-BlobTab:CreateSection("🦠 블롭 컨트롤")
+local BlobControlSection = BlobTab:CreateSection("🦠 블롭 컨트롤")
 
-BlobTab:CreateButton({
+BlobControlSection:CreateButton({
     Name = "🪑 블롭 앉기",
     Callback = function()
         local char = plr.Character
@@ -1870,7 +1942,11 @@ BlobTab:CreateButton({
             local seat = myBlob:FindFirstChildOfClass("VehicleSeat")
             if seat and seat.Occupant == nil then
                 seat:Sit(humanoid)
-                Rayfield:Notify({Title = "블롭", Content = "앉기 성공", Duration = 2})
+                Window:CreateNotification({
+                    Title = "블롭",
+                    Content = "앉기 성공",
+                    Duration = 2
+                })
             end
         else
             spawnBlobmanF()
@@ -1880,117 +1956,157 @@ BlobTab:CreateButton({
                 local seat = newBlob:FindFirstChildOfClass("VehicleSeat")
                 if seat then
                     seat:Sit(humanoid)
-                    Rayfield:Notify({Title = "블롭", Content = "생성 후 앉기", Duration = 2})
+                    Window:CreateNotification({
+                        Title = "블롭",
+                        Content = "생성 후 앉기",
+                        Duration = 2
+                    })
                 end
             end
         end
     end
 })
 
-BlobTab:CreateButton({
+BlobControlSection:CreateButton({
     Name = "🔄 블롭 생성",
     Callback = function()
         spawnBlobmanF()
-        Rayfield:Notify({Title = "블롭", Content = "생성 시도", Duration = 2})
+        Window:CreateNotification({
+            Title = "블롭",
+            Content = "생성 시도",
+            Duration = 2
+        })
     end
 })
 
-BlobTab:CreateButton({
+BlobControlSection:CreateButton({
     Name = "🗑️ 블롭 제거",
     Callback = function()
         if blobmanInstanceS and DestroyToy then
             DestroyToy:FireServer(blobmanInstanceS)
             blobmanInstanceS = nil
-            Rayfield:Notify({Title = "블롭", Content = "제거됨", Duration = 2})
+            Window:CreateNotification({
+                Title = "블롭",
+                Content = "제거됨",
+                Duration = 2
+            })
         end
     end
 })
 
-BlobTab:CreateSection("⚔️ 블롭 공격 (List 대상)")
+local BlobAttackSection = BlobTab:CreateSection("⚔️ 블롭 공격 (List 대상)")
 
-BlobTab:CreateButton({
+BlobAttackSection:CreateButton({
     Name = "💀 블롭 킬",
     Callback = function() BlobAttackAll("kill") end
 })
 
-BlobTab:CreateButton({
+BlobAttackSection:CreateButton({
     Name = "⚡ 블롭 매스리스",
     Callback = function() BlobAttackAll("massless") end
 })
 
-BlobTab:CreateButton({
+BlobAttackSection:CreateButton({
     Name = "🤚 블롭 잡기",
     Callback = function() BlobAttackAll("grab") end
 })
 
-BlobTab:CreateButton({
+BlobAttackSection:CreateButton({
     Name = "✋ 블롭 놓기",
     Callback = function() BlobAttackAll("release") end
 })
 
-BlobTab:CreateButton({
+BlobAttackSection:CreateButton({
     Name = "⬇️ 블롭 드롭",
     Callback = function() BlobAttackAll("drop") end
 })
 
-BlobTab:CreateSection("🔄 블롭 자동 루프")
+local BlobLoopSection = BlobTab:CreateSection("🔄 블롭 자동 루프")
 
-BlobTab:CreateToggle({
+BlobLoopSection:CreateToggle({
     Name = "🔄 루프 킬",
     CurrentValue = false,
     Callback = function(Value)
         blobLoopT3 = Value
         if Value then
             if #playersInLoop1V == 0 then
-                Rayfield:Notify({Title = "오류", Content = "리스트가 비어있음", Duration = 2})
+                Window:CreateNotification({
+                    Title = "오류",
+                    Content = "리스트가 비어있음",
+                    Duration = 2
+                })
                 blobLoopT3 = false
                 return
             end
             rawBlobLoopKill()
-            Rayfield:Notify({Title = "블롭 킬", Content = "루프 시작", Duration = 2})
+            Window:CreateNotification({
+                Title = "블롭 킬",
+                Content = "루프 시작",
+                Duration = 2
+            })
         else
             if blobKillThread then
                 task.cancel(blobKillThread)
                 blobKillThread = nil
             end
-            Rayfield:Notify({Title = "블롭 킬", Content = "루프 종료", Duration = 2})
+            Window:CreateNotification({
+                Title = "블롭 킬",
+                Content = "루프 종료",
+                Duration = 2
+            })
         end
     end
 })
 
-BlobTab:CreateToggle({
+BlobLoopSection:CreateToggle({
     Name = "🔄 루프 킥",
     CurrentValue = false,
     Callback = function(Value)
         blobLoopT = Value
         if Value then
             if #playersInLoop1V == 0 then
-                Rayfield:Notify({Title = "오류", Content = "리스트가 비어있음", Duration = 2})
+                Window:CreateNotification({
+                    Title = "오류",
+                    Content = "리스트가 비어있음",
+                    Duration = 2
+                })
                 blobLoopT = false
                 return
             end
             rawBlobLoopKick()
-            Rayfield:Notify({Title = "블롭 킥", Content = "루프 시작", Duration = 2})
+            Window:CreateNotification({
+                Title = "블롭 킥",
+                Content = "루프 시작",
+                Duration = 2
+            })
         else
             if blobKickThread then
                 task.cancel(blobKickThread)
                 blobKickThread = nil
             end
-            Rayfield:Notify({Title = "블롭 킥", Content = "루프 종료", Duration = 2})
+            Window:CreateNotification({
+                Title = "블롭 킥",
+                Content = "루프 종료",
+                Duration = 2
+            })
         end
     end
 })
 
-BlobTab:CreateSection("✨ 구찌 설정")
+local GucciSection = BlobTab:CreateSection("✨ 구찌設定")
 
-local AutoGucciToggle = BlobTab:CreateToggle({
+GucciSection:CreateToggle({
     Name = "오토 구찌",
     CurrentValue = false,
     Callback = function(Value)
         AutoGucciT = Value
         if AutoGucciT then
             task.spawn(AutoGucciF)
-            Rayfield:Notify({Title = "Gucci", Content = "활성화", Duration = 2})
+            Window:CreateNotification({
+                Title = "Gucci",
+                Content = "활성화",
+                Duration = 2
+            })
         else
             if plr.Character and plr.Character:FindFirstChild("Humanoid") then
                 plr.Character.Humanoid.Sit = true
@@ -2009,44 +2125,49 @@ local AutoGucciToggle = BlobTab:CreateToggle({
 -- =============================================
 -- [ 그랩 탭 ]
 -- =============================================
-GrabTab:CreateSection("🔄 그랩 공격")
+local GrabSection = GrabTab:CreateSection("🔄 그랩 공격")
 
-local LoopGrabToggle = GrabTab:CreateToggle({
+GrabSection:CreateToggle({
     Name = "🔄 루프 그랩",
     CurrentValue = false,
     Callback = function(Value)
         AntiStruggleGrabT = Value
         AntiStruggleGrabF()
-        Rayfield:Notify({Title = "Loop Grab", Content = Value and "활성화" or "비활성화", Duration = 2})
+        Window:CreateNotification({
+            Title = "Loop Grab",
+            Content = Value and "활성화" or "비활성화",
+            Duration = 2
+        })
     end
 })
 
 -- =============================================
 -- [ 아우라 탭 ]
 -- =============================================
-AuraTab:CreateSection("🌀 안티 스티키 아우라")
+local AuraSection = AuraTab:CreateSection("🌀 안티 스티키 아우라")
 
-local AntiStickyAuraToggle = AuraTab:CreateToggle({
+AuraSection:CreateToggle({
     Name = "안티 스티키 아우라",
     CurrentValue = false,
     Callback = function(Value)
         AntiStickyAuraT = Value
         AntiStickyAuraF()
-        Rayfield:Notify({Title = "안티 스티키", Content = Value and "활성화" or "비활성화", Duration = 2})
+        Window:CreateNotification({
+            Title = "안티 스티키",
+            Content = Value and "활성화" or "비활성화",
+            Duration = 2
+        })
     end
 })
 
-AuraTab:CreateParagraph({
-    Title = "설명",
-    Content = "주변 30스터드 내의 스티키 파트 오너쉽 자동 획득"
-})
+AuraSection:CreateParagraph("주변 30스터드 내의 스티키 파트 오너쉽 자동 획득")
 
 -- =============================================
 -- [ 보안 탭 ]
 -- =============================================
-SecurityTab:CreateSection("🔰 방어 설정")
+local SecuritySection = SecurityTab:CreateSection("🔰 방어 설정")
 
-local AntiVoidToggle = SecurityTab:CreateToggle({
+SecuritySection:CreateToggle({
     Name = "안티 보이드",
     CurrentValue = true,
     Callback = function(Value)
@@ -2057,56 +2178,75 @@ local AntiVoidToggle = SecurityTab:CreateToggle({
         end
     end
 })
-AntiVoidToggle:Set(true)
 
-local AntiMasslessToggle = SecurityTab:CreateToggle({
+SecuritySection:CreateToggle({
     Name = "⚖️ 안티 마스리스",
     CurrentValue = false,
     Callback = function(Value)
         antiMasslessEnabled = Value
         AntiMasslessF()
-        Rayfield:Notify({Title = "안티 마스리스", Content = Value and "활성화" or "비활성화", Duration = 2})
+        Window:CreateNotification({
+            Title = "안티 마스리스",
+            Content = Value and "활성화" or "비활성화",
+            Duration = 2
+        })
     end
 })
 
-local AntiBurnToggle = SecurityTab:CreateToggle({
+SecuritySection:CreateToggle({
     Name = "🔥 안티 불",
     CurrentValue = false,
     Callback = function(Value)
         AntiBurnV = Value
         if Value then
             AntiBurn()
-            Rayfield:Notify({Title = "안티 불", Content = "활성화", Duration = 2})
+            Window:CreateNotification({
+                Title = "안티 불",
+                Content = "활성화",
+                Duration = 2
+            })
         end
     end
 })
 
-local AntiExplodeToggle = SecurityTab:CreateToggle({
+SecuritySection:CreateToggle({
     Name = "💥 안티 폭발",
     CurrentValue = false,
     Callback = function(Value)
         AntiExplosionT = Value
         if Value then
             AntiExplosionF()
-            Rayfield:Notify({Title = "안티 폭발", Content = "활성화", Duration = 2})
+            Window:CreateNotification({
+                Title = "안티 폭발",
+                Content = "활성화",
+                Duration = 2
+            })
         else
             if AntiExplosionC then
                 AntiExplosionC:Disconnect()
                 AntiExplosionC = nil
             end
-            Rayfield:Notify({Title = "안티 폭발", Content = "비활성화", Duration = 2})
+            Window:CreateNotification({
+                Title = "안티 폭발",
+                Content = "비활성화",
+                Duration = 2
+            })
         end
     end
 })
 
-local AntiPaintToggle = SecurityTab:CreateToggle({
+SecuritySection:CreateToggle({
     Name = "🎨 안티 페인트",
     CurrentValue = false,
     Callback = function(Value)
         AntiPaintT = Value
         if Value then
             AntiPaintF()
-            Rayfield:Notify({Title = "안티 페인트", Content = "활성화", Duration = 2})
+            Window:CreateNotification({
+                Title = "안티 페인트",
+                Content = "활성화",
+                Duration = 2
+            })
         else
             if AntiPaintThread then
                 task.cancel(AntiPaintThread)
@@ -2119,9 +2259,9 @@ local AntiPaintToggle = SecurityTab:CreateToggle({
 -- =============================================
 -- [ 킥그랩 탭 ]
 -- =============================================
-KickGrabTab:CreateSection("🎯 킥그랩 대상 리스트")
+local KickGrabSection = KickGrabTab:CreateSection("🎯 킥그랩 대상 리스트")
 
-local KickGrabTargetDropdown = KickGrabTab:CreateDropdown({
+local KickGrabTargetDropdown = KickGrabSection:CreateDropdown({
     Name = "킥 그랩 리스트",
     Options = kickGrabTargetList,
     CurrentOption = {"열기"},
@@ -2129,36 +2269,46 @@ local KickGrabTargetDropdown = KickGrabTab:CreateDropdown({
     Callback = function(Options) end
 })
 
-KickGrabTab:CreateInput({
+KickGrabSection:CreateInput({
     Name = "Add",
     PlaceholderText = "닉네임 입력",
-    RemoveTextAfterFocusLost = true,
     Callback = function(Value)
         if not Value or Value == "" then return end
         
         local target = findPlayerByPartialName(Value)
         if not target then
-            Rayfield:Notify({Title = "킥그랩", Content = "플레이어를 찾을 수 없음", Duration = 2})
+            Window:CreateNotification({
+                Title = "킥그랩",
+                Content = "플레이어를 찾을 수 없음",
+                Duration = 2
+            })
             return
         end
         
         for _, name in ipairs(kickGrabTargetList) do
             if name == target.Name then
-                Rayfield:Notify({Title = "킥그랩", Content = "이미 리스트에 있음", Duration = 2})
+                Window:CreateNotification({
+                    Title = "킥그랩",
+                    Content = "이미 리스트에 있음",
+                    Duration = 2
+                })
                 return
             end
         end
         
         table.insert(kickGrabTargetList, target.Name)
         KickGrabTargetDropdown:Refresh(kickGrabTargetList, true)
-        Rayfield:Notify({Title = "킥그랩", Content = "추가: " .. target.Name, Duration = 2})
+        Window:CreateNotification({
+            Title = "킥그랩",
+            Content = "추가: " .. target.Name,
+            Duration = 2
+        })
     end
 })
 
-KickGrabTab:CreateInput({
+KickGrabSection:CreateInput({
     Name = "Remove",
     PlaceholderText = "닉네임 입력",
-    RemoveTextAfterFocusLost = true,
     Callback = function(Value)
         if not Value or Value == "" then return end
         
@@ -2166,32 +2316,41 @@ KickGrabTab:CreateInput({
             if name:lower() == Value:lower() then
                 table.remove(kickGrabTargetList, i)
                 KickGrabTargetDropdown:Refresh(kickGrabTargetList, true)
-                Rayfield:Notify({Title = "킥그랩", Content = "제거: " .. name, Duration = 2})
+                Window:CreateNotification({
+                    Title = "킥그랩",
+                    Content = "제거: " .. name,
+                    Duration = 2
+                })
                 return
             end
         end
-        Rayfield:Notify({Title = "킥그랩", Content = "리스트에 없는 이름", Duration = 2})
+        Window:CreateNotification({
+            Title = "킥그랩",
+            Content = "리스트에 없는 이름",
+            Duration = 2
+        })
     end
 })
 
-KickGrabTab:CreateSection("⚙️ 모드 설정")
+local KickGrabModeSection = KickGrabTab:CreateSection("⚙️ 모드 설정")
 
-local ModeDropdown = KickGrabTab:CreateDropdown({
+KickGrabModeSection:CreateDropdown({
     Name = "모드 선택",
     Options = {"카메라", "위", "아래"},
-    CurrentOption = {"카메라"},
-    MultipleOptions = false,
-    Callback = function(Options)
-        KickGrabState.Mode = Options[1]
-        Rayfield:Notify({Title = "킥그랩", Content = "모드: " .. Options[1], Duration = 2})
+    CurrentOption = "카메라",
+    Callback = function(Value)
+        KickGrabState.Mode = Value
+        Window:CreateNotification({
+            Title = "킥그랩",
+            Content = "모드: " .. Value,
+            Duration = 2
+        })
     end
 })
 
-local DistInput = KickGrabTab:CreateInput({
+KickGrabModeSection:CreateInput({
     Name = "카메라 거리",
-    CurrentValue = "19",
-    PlaceholderText = "거리",
-    RemoveTextAfterFocusLost = false,
+    PlaceholderText = "거리 (기본 19)",
     Callback = function(Value)
         local num = tonumber(Value)
         if num then
@@ -2200,51 +2359,77 @@ local DistInput = KickGrabTab:CreateInput({
     end
 })
 
-KickGrabTab:CreateSection("🎮 실행")
+local KickGrabExecuteSection = KickGrabTab:CreateSection("🎮 실행")
 
-local KickGrabToggle = KickGrabTab:CreateToggle({
+KickGrabExecuteSection:CreateToggle({
     Name = "👢 킥 그랩",
     CurrentValue = false,
     Callback = function(Value)
         if Value and #kickGrabTargetList == 0 then
-            Rayfield:Notify({Title = "오류", Content = "대상 리스트가 비어있습니다", Duration = 2})
-            KickGrabToggle:Set(false)
+            Window:CreateNotification({
+                Title = "오류",
+                Content = "대상 리스트가 비어있습니다",
+                Duration = 2
+            })
             return
         end
         KickGrabState.Looping = Value
         if Value then
             task.spawn(ExecuteKickGrabLoop)
-            Rayfield:Notify({Title = "킥그랩", Content = "활성화", Duration = 2})
+            Window:CreateNotification({
+                Title = "킥그랩",
+                Content = "활성화",
+                Duration = 2
+            })
         else
-            Rayfield:Notify({Title = "킥그랩", Content = "비활성화", Duration = 2})
+            Window:CreateNotification({
+                Title = "킥그랩",
+                Content = "비활성화",
+                Duration = 2
+            })
         end
     end
 })
 
-local AutoRagdollToggle = KickGrabTab:CreateToggle({
+KickGrabExecuteSection:CreateToggle({
     Name = "🔄 오토 레그돌",
     CurrentValue = false,
     Callback = function(Value)
         KickGrabState.AutoRagdoll = Value
-        Rayfield:Notify({Title = "오토 래그돌", Content = Value and "활성화" or "비활성화", Duration = 2})
+        Window:CreateNotification({
+            Title = "오토 래그돌",
+            Content = Value and "활성화" or "비활성화",
+            Duration = 2
+        })
     end
 })
 
-local SnowBallToggle = KickGrabTab:CreateToggle({
+KickGrabExecuteSection:CreateToggle({
     Name = "❄️ 스노우볼",
     CurrentValue = false,
     Callback = function(Value)
         if Value and #kickGrabTargetList == 0 then
-            Rayfield:Notify({Title = "오류", Content = "대상 리스트가 비어있습니다", Duration = 2})
-            SnowBallToggle:Set(false)
+            Window:CreateNotification({
+                Title = "오류",
+                Content = "대상 리스트가 비어있습니다",
+                Duration = 2
+            })
             return
         end
         KickGrabState.SnowBallLooping = Value
         if Value then
             task.spawn(ExecuteSnowballLoop)
-            Rayfield:Notify({Title = "스노우볼", Content = "활성화", Duration = 2})
+            Window:CreateNotification({
+                Title = "스노우볼",
+                Content = "활성화",
+                Duration = 2
+            })
         else
-            Rayfield:Notify({Title = "스노우볼", Content = "비활성화", Duration = 2})
+            Window:CreateNotification({
+                Title = "스노우볼",
+                Content = "비활성화",
+                Duration = 2
+            })
         end
     end
 })
@@ -2252,15 +2437,15 @@ local SnowBallToggle = KickGrabTab:CreateToggle({
 -- =============================================
 -- [ 킬그랩 탭 ]
 -- =============================================
-KillGrabTab:CreateSection("⚔️ 킬그랩 설정")
+local KillGrabSection = KillGrabTab:CreateSection("⚔️ 킬그랩 설정")
 
-KillGrabTab:CreateToggle({
+KillGrabSection:CreateToggle({
     Name = "🔪 킬그랩 활성화",
     CurrentValue = false,
     Callback = function(Value)
         KillGrabEnabled = Value
         KillGrabF()
-        Rayfield:Notify({
+        Window:CreateNotification({
             Title = "킬그랩",
             Content = Value and "활성화 (잡히면 즉시 킬)" or "비활성화",
             Duration = 2
@@ -2268,17 +2453,14 @@ KillGrabTab:CreateToggle({
     end
 })
 
-KillGrabTab:CreateParagraph({
-    Title = "설명",
-    Content = "이 기능을 켜면 누군가 당신을 그랩했을 때\n그 사람이 즉시 죽습니다."
-})
+KillGrabSection:CreateParagraph("이 기능을 켜면 누군가 당신을 그랩했을 때\n그 사람이 즉시 죽습니다.")
 
 -- =============================================
 -- [ 킬 플레이어 정하기 탭 ]
 -- =============================================
-TargetTab:CreateSection("🎯 킬 플레이어 정하기")
+local TargetSection = TargetTab:CreateSection("🎯 킬 플레이어 정하기")
 
-local TargetListDropdown = TargetTab:CreateDropdown({
+local TargetListDropdown = TargetSection:CreateDropdown({
     Name = "리스트",
     Options = targetList,
     CurrentOption = {"열기"},
@@ -2288,36 +2470,46 @@ local TargetListDropdown = TargetTab:CreateDropdown({
     end
 })
 
-TargetTab:CreateInput({
+TargetSection:CreateInput({
     Name = "추가",
     PlaceholderText = "닉네임 입력",
-    RemoveTextAfterFocusLost = true,
     Callback = function(Value)
         if not Value or Value == "" then return end
         
         local target = findPlayerByPartialName(Value)
         if not target then
-            Rayfield:Notify({Title = "대상", Content = "플레이어를 찾을 수 없음", Duration = 2})
+            Window:CreateNotification({
+                Title = "대상",
+                Content = "플레이어를 찾을 수 없음",
+                Duration = 2
+            })
             return
         end
         
         for _, name in ipairs(targetList) do
             if name == target.Name then
-                Rayfield:Notify({Title = "대상", Content = "이미 목록에 있음", Duration = 2})
+                Window:CreateNotification({
+                    Title = "대상",
+                    Content = "이미 목록에 있음",
+                    Duration = 2
+                })
                 return
             end
         end
         
         table.insert(targetList, target.Name)
         TargetListDropdown:Refresh(targetList, true)
-        Rayfield:Notify({Title = "대상", Content = "추가: " .. target.Name, Duration = 2})
+        Window:CreateNotification({
+            Title = "대상",
+            Content = "추가: " .. target.Name,
+            Duration = 2
+        })
     end
 })
 
-TargetTab:CreateInput({
+TargetSection:CreateInput({
     Name = "Remove",
     PlaceholderText = "닉네임 입력",
-    RemoveTextAfterFocusLost = true,
     Callback = function(Value)
         if not Value or Value == "" then return end
         
@@ -2325,36 +2517,44 @@ TargetTab:CreateInput({
             if name:lower() == Value:lower() then
                 table.remove(targetList, i)
                 TargetListDropdown:Refresh(targetList, true)
-                Rayfield:Notify({Title = "대상", Content = "제거: " .. name, Duration = 2})
+                Window:CreateNotification({
+                    Title = "대상",
+                    Content = "제거: " .. name,
+                    Duration = 2
+                })
                 return
             end
         end
-        Rayfield:Notify({Title = "대상", Content = "없는 이름", Duration = 2})
+        Window:CreateNotification({
+            Title = "대상",
+            Content = "없는 이름",
+            Duration = 2
+        })
     end
 })
 
-TargetTab:CreateSection("⚔️ 실행")
+local TargetExecuteSection = TargetTab:CreateSection("⚔️ 실행")
 
-TargetTab:CreateButton({
+TargetExecuteSection:CreateButton({
     Name = "💀 킬",
     Callback = function() manualKill("kill") end
 })
 
-TargetTab:CreateButton({
+TargetExecuteSection:CreateButton({
     Name = "👢 킥",
     Callback = function() manualKill("kick") end
 })
 
-local DeletePartDropdown = TargetTab:CreateDropdown({
+local DeletePartDropdown = TargetExecuteSection:CreateDropdown({
     Name = "🦴 제거할 부위",
     Options = {"팔/다리", "모든 다리", "모든 팔"},
-    CurrentOption = {"팔/다리"},
+    CurrentOption = "팔/다리",
     Callback = function(Options)
-        selectedDeletePart = Options[1]
+        selectedDeletePart = Options
     end
 })
 
-TargetTab:CreateButton({
+TargetExecuteSection:CreateButton({
     Name = "🦴 대상 팔다리 제거",
     Callback = function()
         local count = 0
@@ -2366,11 +2566,15 @@ TargetTab:CreateButton({
             end
             task.wait(0.2)
         end
-        Rayfield:Notify({Title = "팔다리 제거", Content = count .. "명 처리", Duration = 3})
+        Window:CreateNotification({
+            Title = "팔다리 제거",
+            Content = count .. "명 처리",
+            Duration = 3
+        })
     end
 })
 
-TargetTab:CreateButton({
+TargetExecuteSection:CreateButton({
     Name = "🎯 현재 그랩 대상 제거",
     Callback = function()
         local beamPart = Workspace:FindFirstChild("GrabParts") and Workspace.GrabParts:FindFirstChild("BeamPart")
@@ -2378,31 +2582,33 @@ TargetTab:CreateButton({
             local targetPlayer = getClosestPlayer(beamPart)
             if targetPlayer then
                 teleportParts(targetPlayer, selectedDeletePart)
-                Rayfield:Notify({Title = "팔다리 제거", Content = targetPlayer.Name, Duration = 2})
+                Window:CreateNotification({
+                    Title = "팔다리 제거",
+                    Content = targetPlayer.Name,
+                    Duration = 2
+                })
             end
         end
     end
 })
 
-TargetTab:CreateSection("📋 선택된 플레이어")
-local SelectedLabel = TargetTab:CreateLabel("선택됨: 0명", 4483362458)
+local SelectedLabel = TargetTab:CreateLabel("선택됨: 0명")
 spawn(function() while task.wait(0.5) do SelectedLabel:Set("선택됨: " .. #targetList .. "명") end end)
 
 -- =============================================
 -- [ 알림 탭 ]
 -- =============================================
-NotifyTab:CreateSection("🔔 알림 설정")
+local NotifySection = NotifyTab:CreateSection("🔔 알림 설정")
 
-local KickNotifyToggle = NotifyTab:CreateToggle({
+NotifySection:CreateToggle({
     Name = "👢 킥 알림",
     CurrentValue = true,
     Callback = function(Value)
         kickNotificationsEnabled = Value
     end
 })
-KickNotifyToggle:Set(true)
 
-local BlobNotifyToggle = NotifyTab:CreateToggle({
+NotifySection:CreateToggle({
     Name = "🦠 블롭 알림",
     CurrentValue = true,
     Callback = function(Value)
@@ -2417,14 +2623,13 @@ local BlobNotifyToggle = NotifyTab:CreateToggle({
         end
     end
 })
-BlobNotifyToggle:Set(true)
 
 -- =============================================
 -- [ 설정 탭 ]
 -- =============================================
-SettingsTab:CreateSection("⚙️ 설정")
+local SettingsSection = SettingsTab:CreateSection("⚙️ 설정")
 
-SettingsTab:CreateToggle({
+SettingsSection:CreateToggle({
     Name = "인야숨기기",
     CurrentValue = true,
     Callback = function(Value)
@@ -2434,11 +2639,7 @@ SettingsTab:CreateToggle({
     end
 })
 
-SettingsTab:CreateSection("⌨️ 단축키 안내")
-SettingsTab:CreateParagraph({
-    Title = "PC 단축키",
-    Content = "Z 키: 시선 방향 텔레포트"
-})
+SettingsSection:CreateParagraph("PC 단축키\nZ 키: 시선 방향 텔레포트")
 
 -- =============================================
 -- [ TP 버튼 생성 ]
@@ -2451,15 +2652,12 @@ createTPButton()
 task.wait(1)
 isAntiGrabEnabled = true
 AntiGrabF(true)
-AntiGrabToggle:Set(true)
 
 setupKickNotifications()
 setupBlobNotifications()
 
-bringRayfieldToFront()
-
-Rayfield:Notify({
+Window:CreateNotification({
     Title = "🚀 로드 완료",
-    Content = "킬그랩 포함 (💀 킬그랩 탭)",
+    Content = "Amethyst UI 적용 | 킬그랩 포함",
     Duration = 5
 })
