@@ -1,21 +1,23 @@
--- FTAP (Fling Things and People) 올인원 스크립트 (Amethyst UI 버전)
+-- FTAP (Fling Things and People) 올인원 스크립트 (Orion Library 버전)
 
 -- =============================================
--- [ Amethyst UI 로드 ]
+-- [ Orion Library 로드 ]
 -- =============================================
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/J0se-j/My-Lua-Library/refs/heads/main/Booting-the-library.lua"))()
+local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/Qanuir/orion-ui/refs/heads/main/source.lua"))()
 
-local Window = Library:CreateWindow({
+local Window = OrionLib:MakeWindow({
     Name = "FTAP-도검",
-    LoadingTitle = "Amethyst UI",
-    LoadingSubtitle = "by J0se-j",
-    ToggleUIKeybind = Enum.KeyCode.T,  -- T 키로 UI 토글
-    ConfigurationSaving = {
-        Enabled = true,
-        FolderName = "AmethystUI",
-        FileName = "UserSettings"
-    }
+    HidePremium = false,
+    SaveConfig = true,
+    ConfigFolder = "FTAP_CONFIG",
+    IntroEnabled = false,
+    IntroText = "로딩중..."
 })
+
+-- =============================================
+-- [ T 키로 UI 토글 ]
+-- =============================================
+local ToggleKey = Enum.KeyCode.T
 
 -- =============================================
 -- [ Infinite Yield 로드 ]
@@ -1001,10 +1003,11 @@ end
 local function BlobAttackAll(mode)
     UpdateCurrentBlobman()
     if not currentBlobS then
-        Window:CreateNotification({
-            Title = "블롭",
+        OrionLib:MakeNotification({
+            Name = "블롭",
             Content = "블롭을 타고 있어야 합니다",
-            Duration = 2
+            Image = "rbxassetid://4483345998",
+            Time = 2
         })
         return
     end
@@ -1035,10 +1038,11 @@ local function BlobAttackAll(mode)
     end
     
     local modeNames = {kill="킬", massless="매스리스", grab="잡기", release="놓기", drop="드롭"}
-    Window:CreateNotification({
-        Title = "블롭 " .. modeNames[mode],
+    OrionLib:MakeNotification({
+        Name = "블롭 " .. modeNames[mode],
         Content = count .. "명 처리",
-        Duration = 2
+        Image = "rbxassetid://4483345998",
+        Time = 2
     })
 end
 
@@ -1053,10 +1057,11 @@ local function rawBlobLoopKill()
         and plr.Character:FindFirstChildOfClass("Humanoid").SeatPart
 
     if not (seat and seat.Parent and seat.Parent.Name == "CreatureBlobman") then
-        Window:CreateNotification({
-            Title = "블롭 킬",
+        OrionLib:MakeNotification({
+            Name = "블롭 킬",
             Content = "블롭에 탑승하세요",
-            Duration = 2
+            Image = "rbxassetid://4483345998",
+            Time = 2
         })
         return false
     end
@@ -1110,10 +1115,11 @@ local function rawBlobLoopKick()
 
     local seat = plr.Character and plr.Character:FindFirstChildOfClass("Humanoid") and plr.Character:FindFirstChildOfClass("Humanoid").SeatPart
     if not (seat and seat.Parent and seat.Parent.Name == "CreatureBlobman") then
-        Window:CreateNotification({
-            Title = "블롭 킥",
+        OrionLib:MakeNotification({
+            Name = "블롭 킥",
             Content = "블롭에 탑승하세요",
-            Duration = 2
+            Image = "rbxassetid://4483345998",
+            Time = 2
         })
         return false
     end
@@ -1266,10 +1272,11 @@ local PBDrun = false
 
 local function PlotBarrierDelete()
     if PBDrun then 
-        Window:CreateNotification({
-            Title = "베리어",
+        OrionLib:MakeNotification({
+            Name = "베리어",
             Content = "이미 실행 중",
-            Duration = 2
+            Image = "rbxassetid://4483345998",
+            Time = 2
         })
         return 
     end
@@ -1278,10 +1285,11 @@ local function PlotBarrierDelete()
     local char = plr.Character
     if not char then 
         PBDrun = false 
-        Window:CreateNotification({
-            Title = "오류",
+        OrionLib:MakeNotification({
+            Name = "오류",
             Content = "캐릭터 없음",
-            Duration = 2
+            Image = "rbxassetid://4483345998",
+            Time = 2
         })
         return 
     end
@@ -1289,10 +1297,11 @@ local function PlotBarrierDelete()
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then 
         PBDrun = false 
-        Window:CreateNotification({
-            Title = "오류",
+        OrionLib:MakeNotification({
+            Name = "오류",
             Content = "HumanoidRootPart 없음",
-            Duration = 2
+            Image = "rbxassetid://4483345998",
+            Time = 2
         })
         return 
     end
@@ -1308,10 +1317,11 @@ local function PlotBarrierDelete()
 
     if not metal then
         PBDrun = false
-        Window:CreateNotification({
-            Title = "오류",
+        OrionLib:MakeNotification({
+            Name = "오류",
             Content = "Metal 파트를 찾을 수 없음",
-            Duration = 2
+            Image = "rbxassetid://4483345998",
+            Time = 2
         })
         return
     end
@@ -1332,10 +1342,11 @@ local function PlotBarrierDelete()
     local foodBread = inv and inv:FindFirstChild("FoodBread")
     if not foodBread then 
         PBDrun = false 
-        Window:CreateNotification({
-            Title = "오류",
+        OrionLib:MakeNotification({
+            Name = "오류",
             Content = "빵 생성 실패",
-            Duration = 2
+            Image = "rbxassetid://4483345998",
+            Time = 2
         })
         return 
     end
@@ -1368,10 +1379,11 @@ local function PlotBarrierDelete()
     task.wait(0.4)
 
     PBDrun = false
-    Window:CreateNotification({
-        Title = "✅ 베리어",
+    OrionLib:MakeNotification({
+        Name = "✅ 베리어",
         Content = "부수기 완료",
-        Duration = 2
+        Image = "rbxassetid://4483345998",
+        Time = 2
     })
 end
 
@@ -1383,10 +1395,11 @@ local targetList = {}
 local function manualKill(mode)
     local char = plr.Character
     if not char then 
-        Window:CreateNotification({
-            Title = "오류",
+        OrionLib:MakeNotification({
+            Name = "오류",
             Content = "캐릭터 없음",
-            Duration = 2
+            Image = "rbxassetid://4483345998",
+            Time = 2
         })
         return 
     end
@@ -1412,10 +1425,11 @@ local function manualKill(mode)
         task.wait(0.1)
     end
     
-    Window:CreateNotification({
-        Title = mode == "kill" and "Kill" or "Kick",
+    OrionLib:MakeNotification({
+        Name = mode == "kill" and "Kill" or "Kick",
         Content = count .. "명 처리",
-        Duration = 2
+        Image = "rbxassetid://4483345998",
+        Time = 2
     })
 end
 
@@ -1425,10 +1439,11 @@ end
 local function ManualRelease()
     local char = plr.Character
     if not char then 
-        Window:CreateNotification({
-            Title = "오류",
+        OrionLib:MakeNotification({
+            Name = "오류",
             Content = "캐릭터 없음",
-            Duration = 2
+            Image = "rbxassetid://4483345998",
+            Time = 2
         })
         return 
     end
@@ -1454,9 +1469,9 @@ local function ManualRelease()
     
     if Struggle then pcall(function() Struggle:FireServer() end) end
     
-    Window:CreateNotification({
-        Title = "해제 완료",
-        Duration = 2
+    OrionLib:MakeNotification({
+        Name = "해제 완료",
+        Time = 2
     })
 end
 
@@ -1558,10 +1573,11 @@ local function AutoGucciF()
 
             if not successCheck then
                 local blobHRP = blobmanInstanceS and blobmanInstanceS:FindFirstChild("HumanoidRootPart")
-                Window:CreateNotification({
-                    Title = "Gucci",
+                OrionLib:MakeNotification({
+                    Name = "Gucci",
                     Content = "재시도 대기 중...",
-                    Duration = 1
+                    Image = "rbxassetid://4483345998",
+                    Time = 1
                 })
                 if hum then
                     if Struggle then Struggle:FireServer(plr) end
@@ -1598,10 +1614,11 @@ local function setupKickNotifications()
 
     Players.PlayerRemoving:Connect(function(player)
         if anchoredCache[player] == true and kickNotificationsEnabled then
-            Window:CreateNotification({
-                Title = "👢 Kick 감지",
+            OrionLib:MakeNotification({
+                Name = "👢 Kick 감지",
                 Content = string.format("%s (@%s) 님이 킥당했습니다", player.DisplayName, player.Name),
-                Duration = 5
+                Image = "rbxassetid://4483345998",
+                Time = 5
             })
         end
         anchoredCache[player] = nil
@@ -1647,10 +1664,11 @@ local function CheckBlob(blob, myHRP, myAttach, source)
 
             if not notifyCooldowns[msg] or (now - notifyCooldowns[msg]) >= 2 then
                 notifyCooldowns[msg] = now
-                Window:CreateNotification({
-                    Title = "🦠 블롭 감지",
+                OrionLib:MakeNotification({
+                    Name = "🦠 블롭 감지",
                     Content = msg,
-                    Duration = 3
+                    Image = "rbxassetid://4483345998",
+                    Time = 3
                 })
             end
 
@@ -1751,86 +1769,84 @@ local function setupBlobNotifications()
 end
 
 -- =============================================
--- [ 탭 생성 ]
--- =============================================
-local MainTab = Window:CreateTab("메인", 4483362458)
-local BlobTab = Window:CreateTab("블롭", 4483362458)
-local GrabTab = Window:CreateTab("그랩", 4483362458)
-local SecurityTab = Window:CreateTab("보안", 4483362458)
-local AuraTab = Window:CreateTab("아우라", 4483362458)
-local TargetTab = Window:CreateTab("킬 플레이어 정하기", 4483362458)
-local NotifyTab = Window:CreateTab("🔔 알림", 4483362458)
-local KickGrabTab = Window:CreateTab("👢 킥그랩", 4483362458)
-local KillGrabTab = Window:CreateTab("💀 킬그랩", 4483362458)
-local SettingsTab = Window:CreateTab("설정", 4483362458)
-
--- =============================================
 -- [ 메인 탭 ]
 -- =============================================
-local DefenseSection = MainTab:CreateSection("🛡️ 기본 방어")
+local MainTab = Window:MakeTab({
+    Name = "메인",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
 
-DefenseSection:CreateToggle({
+local DefenseSection = MainTab:AddSection({
+    Name = "🛡️ 기본 방어"
+})
+
+DefenseSection:AddToggle({
     Name = "⚡ 안티 그랩",
-    CurrentValue = false,
+    Default = false,
     Callback = function(Value)
         isAntiGrabEnabled = Value
         AntiGrabF(Value)
     end
 })
 
-DefenseSection:CreateButton({
+DefenseSection:AddButton({
     Name = "🔓 쓰지마세요",
     Callback = ManualRelease
 })
 
-DefenseSection:CreateToggle({
+DefenseSection:AddToggle({
     Name = "👁️ PCLD 보기",
-    CurrentValue = false,
+    Default = false,
     Callback = function(Value)
         pcldViewEnabled = Value
         togglePcldView(Value)
     end
 })
 
-DefenseSection:CreateToggle({
+DefenseSection:AddToggle({
     Name = "🧱 베리어 노클립",
-    CurrentValue = false,
+    Default = false,
     Callback = function(Value)
         BarrierCanCollideT = Value
         BarrierCanCollideF()
     end
 })
 
-DefenseSection:CreateButton({
+DefenseSection:AddButton({
     Name = "💥 집 베리어 부수기",
     Callback = PlotBarrierDelete
 })
 
-DefenseSection:CreateToggle({
+DefenseSection:AddToggle({
     Name = "🛡️ 안티 킥",
-    CurrentValue = false,
+    Default = false,
     Callback = function(Value)
         AntiPCLDEnabled = Value
         if Value then
             setupAntiPCLD()
-            Window:CreateNotification({
-                Title = "안티킥",
+            OrionLib:MakeNotification({
+                Name = "안티킥",
                 Content = "활성화",
-                Duration = 2
+                Image = "rbxassetid://4483345998",
+                Time = 2
             })
         else
-            Window:CreateNotification({
-                Title = "안티킥",
+            OrionLib:MakeNotification({
+                Name = "안티킥",
                 Content = "비활성화",
-                Duration = 2
+                Image = "rbxassetid://4483345998",
+                Time = 2
             })
         end
     end
 })
 
-local StatusSection = MainTab:CreateSection("📊 상태")
+local StatusSection = MainTab:AddSection({
+    Name = "📊 상태"
+})
 
-local StatusLabel = StatusSection:CreateLabel("상태: 확인 중...")
+local StatusLabel = StatusSection:AddLabel("상태: 확인 중...")
 
 spawn(function()
     while task.wait(0.5) do
@@ -1852,19 +1868,26 @@ end)
 -- =============================================
 -- [ 블롭 탭 ]
 -- =============================================
-local BlobTargetSection = BlobTab:CreateSection("🦠 블롭 공격 대상")
+local BlobTab = Window:MakeTab({
+    Name = "블롭",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
 
-local BlobTargetDropdown = BlobTargetSection:CreateDropdown({
+local BlobTargetSection = BlobTab:AddSection({
+    Name = "🦠 블롭 공격 대상"
+})
+
+local BlobTargetDropdown = BlobTargetSection:AddDropdown({
     Name = "리스트",
     Options = playersInLoop1V,
-    CurrentOption = {"열기"},
-    MultipleOptions = true,
+    Default = "열기",
     Callback = function(Options)
         playersInLoop1V = Options
     end
 })
 
-BlobTargetSection:CreateInput({
+BlobTargetSection:AddTextbox({
     Name = "추가",
     PlaceholderText = "닉네임 입력",
     Callback = function(Value)
@@ -1872,36 +1895,39 @@ BlobTargetSection:CreateInput({
         
         local target = findPlayerByPartialName(Value)
         if not target then
-            Window:CreateNotification({
-                Title = "블롭",
+            OrionLib:MakeNotification({
+                Name = "블롭",
                 Content = "플레이어를 찾을 수 없음",
-                Duration = 2
+                Image = "rbxassetid://4483345998",
+                Time = 2
             })
             return
         end
         
         for _, name in ipairs(playersInLoop1V) do
             if name == target.Name then
-                Window:CreateNotification({
-                    Title = "블롭",
+                OrionLib:MakeNotification({
+                    Name = "블롭",
                     Content = "이미 목록에 있음",
-                    Duration = 2
+                    Image = "rbxassetid://4483345998",
+                    Time = 2
                 })
                 return
             end
         end
         
         table.insert(playersInLoop1V, target.Name)
-        BlobTargetDropdown:Refresh(playersInLoop1V, true)
-        Window:CreateNotification({
-            Title = "블롭",
+        BlobTargetDropdown:Refresh(playersInLoop1V)
+        OrionLib:MakeNotification({
+            Name = "블롭",
             Content = "추가: " .. target.Name,
-            Duration = 2
+            Image = "rbxassetid://4483345998",
+            Time = 2
         })
     end
 })
 
-BlobTargetSection:CreateInput({
+BlobTargetSection:AddTextbox({
     Name = "Remove",
     PlaceholderText = "닉네임 입력",
     Callback = function(Value)
@@ -1910,26 +1936,30 @@ BlobTargetSection:CreateInput({
         for i, name in ipairs(playersInLoop1V) do
             if name:lower() == Value:lower() then
                 table.remove(playersInLoop1V, i)
-                BlobTargetDropdown:Refresh(playersInLoop1V, true)
-                Window:CreateNotification({
-                    Title = "블롭",
+                BlobTargetDropdown:Refresh(playersInLoop1V)
+                OrionLib:MakeNotification({
+                    Name = "블롭",
                     Content = "제거: " .. name,
-                    Duration = 2
+                    Image = "rbxassetid://4483345998",
+                    Time = 2
                 })
                 return
             end
         end
-        Window:CreateNotification({
-            Title = "블롭",
+        OrionLib:MakeNotification({
+            Name = "블롭",
             Content = "없는 이름",
-            Duration = 2
+            Image = "rbxassetid://4483345998",
+            Time = 2
         })
     end
 })
 
-local BlobControlSection = BlobTab:CreateSection("🦠 블롭 컨트롤")
+local BlobControlSection = BlobTab:AddSection({
+    Name = "🦠 블롭 컨트롤"
+})
 
-BlobControlSection:CreateButton({
+BlobControlSection:AddButton({
     Name = "🪑 블롭 앉기",
     Callback = function()
         local char = plr.Character
@@ -1942,10 +1972,11 @@ BlobControlSection:CreateButton({
             local seat = myBlob:FindFirstChildOfClass("VehicleSeat")
             if seat and seat.Occupant == nil then
                 seat:Sit(humanoid)
-                Window:CreateNotification({
-                    Title = "블롭",
+                OrionLib:MakeNotification({
+                    Name = "블롭",
                     Content = "앉기 성공",
-                    Duration = 2
+                    Image = "rbxassetid://4483345998",
+                    Time = 2
                 })
             end
         else
@@ -1956,10 +1987,11 @@ BlobControlSection:CreateButton({
                 local seat = newBlob:FindFirstChildOfClass("VehicleSeat")
                 if seat then
                     seat:Sit(humanoid)
-                    Window:CreateNotification({
-                        Title = "블롭",
+                    OrionLib:MakeNotification({
+                        Name = "블롭",
                         Content = "생성 후 앉기",
-                        Duration = 2
+                        Image = "rbxassetid://4483345998",
+                        Time = 2
                     })
                 end
             end
@@ -1967,145 +1999,160 @@ BlobControlSection:CreateButton({
     end
 })
 
-BlobControlSection:CreateButton({
+BlobControlSection:AddButton({
     Name = "🔄 블롭 생성",
     Callback = function()
         spawnBlobmanF()
-        Window:CreateNotification({
-            Title = "블롭",
+        OrionLib:MakeNotification({
+            Name = "블롭",
             Content = "생성 시도",
-            Duration = 2
+            Image = "rbxassetid://4483345998",
+            Time = 2
         })
     end
 })
 
-BlobControlSection:CreateButton({
+BlobControlSection:AddButton({
     Name = "🗑️ 블롭 제거",
     Callback = function()
         if blobmanInstanceS and DestroyToy then
             DestroyToy:FireServer(blobmanInstanceS)
             blobmanInstanceS = nil
-            Window:CreateNotification({
-                Title = "블롭",
+            OrionLib:MakeNotification({
+                Name = "블롭",
                 Content = "제거됨",
-                Duration = 2
+                Image = "rbxassetid://4483345998",
+                Time = 2
             })
         end
     end
 })
 
-local BlobAttackSection = BlobTab:CreateSection("⚔️ 블롭 공격 (List 대상)")
+local BlobAttackSection = BlobTab:AddSection({
+    Name = "⚔️ 블롭 공격 (List 대상)"
+})
 
-BlobAttackSection:CreateButton({
+BlobAttackSection:AddButton({
     Name = "💀 블롭 킬",
     Callback = function() BlobAttackAll("kill") end
 })
 
-BlobAttackSection:CreateButton({
+BlobAttackSection:AddButton({
     Name = "⚡ 블롭 매스리스",
     Callback = function() BlobAttackAll("massless") end
 })
 
-BlobAttackSection:CreateButton({
+BlobAttackSection:AddButton({
     Name = "🤚 블롭 잡기",
     Callback = function() BlobAttackAll("grab") end
 })
 
-BlobAttackSection:CreateButton({
+BlobAttackSection:AddButton({
     Name = "✋ 블롭 놓기",
     Callback = function() BlobAttackAll("release") end
 })
 
-BlobAttackSection:CreateButton({
+BlobAttackSection:AddButton({
     Name = "⬇️ 블롭 드롭",
     Callback = function() BlobAttackAll("drop") end
 })
 
-local BlobLoopSection = BlobTab:CreateSection("🔄 블롭 자동 루프")
+local BlobLoopSection = BlobTab:AddSection({
+    Name = "🔄 블롭 자동 루프"
+})
 
-BlobLoopSection:CreateToggle({
+BlobLoopSection:AddToggle({
     Name = "🔄 루프 킬",
-    CurrentValue = false,
+    Default = false,
     Callback = function(Value)
         blobLoopT3 = Value
         if Value then
             if #playersInLoop1V == 0 then
-                Window:CreateNotification({
-                    Title = "오류",
+                OrionLib:MakeNotification({
+                    Name = "오류",
                     Content = "리스트가 비어있음",
-                    Duration = 2
+                    Image = "rbxassetid://4483345998",
+                    Time = 2
                 })
                 blobLoopT3 = false
                 return
             end
             rawBlobLoopKill()
-            Window:CreateNotification({
-                Title = "블롭 킬",
+            OrionLib:MakeNotification({
+                Name = "블롭 킬",
                 Content = "루프 시작",
-                Duration = 2
+                Image = "rbxassetid://4483345998",
+                Time = 2
             })
         else
             if blobKillThread then
                 task.cancel(blobKillThread)
                 blobKillThread = nil
             end
-            Window:CreateNotification({
-                Title = "블롭 킬",
+            OrionLib:MakeNotification({
+                Name = "블롭 킬",
                 Content = "루프 종료",
-                Duration = 2
+                Image = "rbxassetid://4483345998",
+                Time = 2
             })
         end
     end
 })
 
-BlobLoopSection:CreateToggle({
+BlobLoopSection:AddToggle({
     Name = "🔄 루프 킥",
-    CurrentValue = false,
+    Default = false,
     Callback = function(Value)
         blobLoopT = Value
         if Value then
             if #playersInLoop1V == 0 then
-                Window:CreateNotification({
-                    Title = "오류",
+                OrionLib:MakeNotification({
+                    Name = "오류",
                     Content = "리스트가 비어있음",
-                    Duration = 2
+                    Image = "rbxassetid://4483345998",
+                    Time = 2
                 })
                 blobLoopT = false
                 return
             end
             rawBlobLoopKick()
-            Window:CreateNotification({
-                Title = "블롭 킥",
+            OrionLib:MakeNotification({
+                Name = "블롭 킥",
                 Content = "루프 시작",
-                Duration = 2
+                Image = "rbxassetid://4483345998",
+                Time = 2
             })
         else
             if blobKickThread then
                 task.cancel(blobKickThread)
                 blobKickThread = nil
             end
-            Window:CreateNotification({
-                Title = "블롭 킥",
+            OrionLib:MakeNotification({
+                Name = "블롭 킥",
                 Content = "루프 종료",
-                Duration = 2
+                Image = "rbxassetid://4483345998",
+                Time = 2
             })
         end
     end
 })
 
-local GucciSection = BlobTab:CreateSection("✨ 구찌設定")
+local GucciSection = BlobTab:AddSection({
+    Name = "✨ 구찌 설정"
+})
 
-GucciSection:CreateToggle({
+GucciSection:AddToggle({
     Name = "오토 구찌",
-    CurrentValue = false,
+    Default = false,
     Callback = function(Value)
         AutoGucciT = Value
         if AutoGucciT then
             task.spawn(AutoGucciF)
-            Window:CreateNotification({
-                Title = "Gucci",
+            OrionLib:MakeNotification({
+                Name = "Gucci",
                 Content = "활성화",
-                Duration = 2
+                Image = "rbxassetid://4483345998",
+                Time = 2
             })
         else
             if plr.Character and plr.Character:FindFirstChild("Humanoid") then
@@ -2125,18 +2172,27 @@ GucciSection:CreateToggle({
 -- =============================================
 -- [ 그랩 탭 ]
 -- =============================================
-local GrabSection = GrabTab:CreateSection("🔄 그랩 공격")
+local GrabTab = Window:MakeTab({
+    Name = "그랩",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
 
-GrabSection:CreateToggle({
+local GrabSection = GrabTab:AddSection({
+    Name = "🔄 그랩 공격"
+})
+
+GrabSection:AddToggle({
     Name = "🔄 루프 그랩",
-    CurrentValue = false,
+    Default = false,
     Callback = function(Value)
         AntiStruggleGrabT = Value
         AntiStruggleGrabF()
-        Window:CreateNotification({
-            Title = "Loop Grab",
+        OrionLib:MakeNotification({
+            Name = "Loop Grab",
             Content = Value and "활성화" or "비활성화",
-            Duration = 2
+            Image = "rbxassetid://4483345998",
+            Time = 2
         })
     end
 })
@@ -2144,32 +2200,49 @@ GrabSection:CreateToggle({
 -- =============================================
 -- [ 아우라 탭 ]
 -- =============================================
-local AuraSection = AuraTab:CreateSection("🌀 안티 스티키 아우라")
+local AuraTab = Window:MakeTab({
+    Name = "아우라",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
 
-AuraSection:CreateToggle({
+local AuraSection = AuraTab:AddSection({
+    Name = "🌀 안티 스티키 아우라"
+})
+
+AuraSection:AddToggle({
     Name = "안티 스티키 아우라",
-    CurrentValue = false,
+    Default = false,
     Callback = function(Value)
         AntiStickyAuraT = Value
         AntiStickyAuraF()
-        Window:CreateNotification({
-            Title = "안티 스티키",
+        OrionLib:MakeNotification({
+            Name = "안티 스티키",
             Content = Value and "활성화" or "비활성화",
-            Duration = 2
+            Image = "rbxassetid://4483345998",
+            Time = 2
         })
     end
 })
 
-AuraSection:CreateParagraph("주변 30스터드 내의 스티키 파트 오너쉽 자동 획득")
+AuraSection:AddLabel("주변 30스터드 내의 스티키 파트 오너쉽 자동 획득")
 
 -- =============================================
 -- [ 보안 탭 ]
 -- =============================================
-local SecuritySection = SecurityTab:CreateSection("🔰 방어 설정")
+local SecurityTab = Window:MakeTab({
+    Name = "보안",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
 
-SecuritySection:CreateToggle({
+local SecuritySection = SecurityTab:AddSection({
+    Name = "🔰 방어 설정"
+})
+
+SecuritySection:AddToggle({
     Name = "안티 보이드",
-    CurrentValue = true,
+    Default = true,
     Callback = function(Value)
         if Value then
             Workspace.FallenPartsDestroyHeight = -500000000
@@ -2179,73 +2252,78 @@ SecuritySection:CreateToggle({
     end
 })
 
-SecuritySection:CreateToggle({
+SecuritySection:AddToggle({
     Name = "⚖️ 안티 마스리스",
-    CurrentValue = false,
+    Default = false,
     Callback = function(Value)
         antiMasslessEnabled = Value
         AntiMasslessF()
-        Window:CreateNotification({
-            Title = "안티 마스리스",
+        OrionLib:MakeNotification({
+            Name = "안티 마스리스",
             Content = Value and "활성화" or "비활성화",
-            Duration = 2
+            Image = "rbxassetid://4483345998",
+            Time = 2
         })
     end
 })
 
-SecuritySection:CreateToggle({
+SecuritySection:AddToggle({
     Name = "🔥 안티 불",
-    CurrentValue = false,
+    Default = false,
     Callback = function(Value)
         AntiBurnV = Value
         if Value then
             AntiBurn()
-            Window:CreateNotification({
-                Title = "안티 불",
+            OrionLib:MakeNotification({
+                Name = "안티 불",
                 Content = "활성화",
-                Duration = 2
+                Image = "rbxassetid://4483345998",
+                Time = 2
             })
         end
     end
 })
 
-SecuritySection:CreateToggle({
+SecuritySection:AddToggle({
     Name = "💥 안티 폭발",
-    CurrentValue = false,
+    Default = false,
     Callback = function(Value)
         AntiExplosionT = Value
         if Value then
             AntiExplosionF()
-            Window:CreateNotification({
-                Title = "안티 폭발",
+            OrionLib:MakeNotification({
+                Name = "안티 폭발",
                 Content = "활성화",
-                Duration = 2
+                Image = "rbxassetid://4483345998",
+                Time = 2
             })
         else
             if AntiExplosionC then
                 AntiExplosionC:Disconnect()
                 AntiExplosionC = nil
             end
-            Window:CreateNotification({
-                Title = "안티 폭발",
+            OrionLib:MakeNotification({
+                Name = "안티 폭발",
                 Content = "비활성화",
-                Duration = 2
+                Image = "rbxassetid://4483345998",
+                Time = 2
             })
         end
     end
 })
 
-SecuritySection:CreateToggle({
+SecuritySection:AddToggle({
     Name = "🎨 안티 페인트",
-    CurrentValue = false,
+    Default = false,
     Callback = function(Value)
         AntiPaintT = Value
         if Value then
             AntiPaintF()
-            Window:CreateNotification({
-                Title = "안티 페인트",
+            OrionLib:MakeNotification({
+                Name = "안티 페인트",
                 Content = "활성화",
-                Duration = 2
+                Image = "rbxassetid://4483345998",
+                Time = 2
             })
         else
             if AntiPaintThread then
@@ -2259,17 +2337,24 @@ SecuritySection:CreateToggle({
 -- =============================================
 -- [ 킥그랩 탭 ]
 -- =============================================
-local KickGrabSection = KickGrabTab:CreateSection("🎯 킥그랩 대상 리스트")
+local KickGrabTab = Window:MakeTab({
+    Name = "킥그랩",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
 
-local KickGrabTargetDropdown = KickGrabSection:CreateDropdown({
+local KickGrabSection = KickGrabTab:AddSection({
+    Name = "🎯 킥그랩 대상 리스트"
+})
+
+local KickGrabTargetDropdown = KickGrabSection:AddDropdown({
     Name = "킥 그랩 리스트",
     Options = kickGrabTargetList,
-    CurrentOption = {"열기"},
-    MultipleOptions = true,
+    Default = "열기",
     Callback = function(Options) end
 })
 
-KickGrabSection:CreateInput({
+KickGrabSection:AddTextbox({
     Name = "Add",
     PlaceholderText = "닉네임 입력",
     Callback = function(Value)
@@ -2277,36 +2362,39 @@ KickGrabSection:CreateInput({
         
         local target = findPlayerByPartialName(Value)
         if not target then
-            Window:CreateNotification({
-                Title = "킥그랩",
+            OrionLib:MakeNotification({
+                Name = "킥그랩",
                 Content = "플레이어를 찾을 수 없음",
-                Duration = 2
+                Image = "rbxassetid://4483345998",
+                Time = 2
             })
             return
         end
         
         for _, name in ipairs(kickGrabTargetList) do
             if name == target.Name then
-                Window:CreateNotification({
-                    Title = "킥그랩",
+                OrionLib:MakeNotification({
+                    Name = "킥그랩",
                     Content = "이미 리스트에 있음",
-                    Duration = 2
+                    Image = "rbxassetid://4483345998",
+                    Time = 2
                 })
                 return
             end
         end
         
         table.insert(kickGrabTargetList, target.Name)
-        KickGrabTargetDropdown:Refresh(kickGrabTargetList, true)
-        Window:CreateNotification({
-            Title = "킥그랩",
+        KickGrabTargetDropdown:Refresh(kickGrabTargetList)
+        OrionLib:MakeNotification({
+            Name = "킥그랩",
             Content = "추가: " .. target.Name,
-            Duration = 2
+            Image = "rbxassetid://4483345998",
+            Time = 2
         })
     end
 })
 
-KickGrabSection:CreateInput({
+KickGrabSection:AddTextbox({
     Name = "Remove",
     PlaceholderText = "닉네임 입력",
     Callback = function(Value)
@@ -2315,40 +2403,45 @@ KickGrabSection:CreateInput({
         for i, name in ipairs(kickGrabTargetList) do
             if name:lower() == Value:lower() then
                 table.remove(kickGrabTargetList, i)
-                KickGrabTargetDropdown:Refresh(kickGrabTargetList, true)
-                Window:CreateNotification({
-                    Title = "킥그랩",
+                KickGrabTargetDropdown:Refresh(kickGrabTargetList)
+                OrionLib:MakeNotification({
+                    Name = "킥그랩",
                     Content = "제거: " .. name,
-                    Duration = 2
+                    Image = "rbxassetid://4483345998",
+                    Time = 2
                 })
                 return
             end
         end
-        Window:CreateNotification({
-            Title = "킥그랩",
+        OrionLib:MakeNotification({
+            Name = "킥그랩",
             Content = "리스트에 없는 이름",
-            Duration = 2
+            Image = "rbxassetid://4483345998",
+            Time = 2
         })
     end
 })
 
-local KickGrabModeSection = KickGrabTab:CreateSection("⚙️ 모드 설정")
+local KickGrabModeSection = KickGrabTab:AddSection({
+    Name = "⚙️ 모드 설정"
+})
 
-KickGrabModeSection:CreateDropdown({
+KickGrabModeSection:AddDropdown({
     Name = "모드 선택",
     Options = {"카메라", "위", "아래"},
-    CurrentOption = "카메라",
+    Default = "카메라",
     Callback = function(Value)
         KickGrabState.Mode = Value
-        Window:CreateNotification({
-            Title = "킥그랩",
+        OrionLib:MakeNotification({
+            Name = "킥그랩",
             Content = "모드: " .. Value,
-            Duration = 2
+            Image = "rbxassetid://4483345998",
+            Time = 2
         })
     end
 })
 
-KickGrabModeSection:CreateInput({
+KickGrabModeSection:AddTextbox({
     Name = "카메라 거리",
     PlaceholderText = "거리 (기본 19)",
     Callback = function(Value)
@@ -2359,76 +2452,85 @@ KickGrabModeSection:CreateInput({
     end
 })
 
-local KickGrabExecuteSection = KickGrabTab:CreateSection("🎮 실행")
+local KickGrabExecuteSection = KickGrabTab:AddSection({
+    Name = "🎮 실행"
+})
 
-KickGrabExecuteSection:CreateToggle({
+KickGrabExecuteSection:AddToggle({
     Name = "👢 킥 그랩",
-    CurrentValue = false,
+    Default = false,
     Callback = function(Value)
         if Value and #kickGrabTargetList == 0 then
-            Window:CreateNotification({
-                Title = "오류",
+            OrionLib:MakeNotification({
+                Name = "오류",
                 Content = "대상 리스트가 비어있습니다",
-                Duration = 2
+                Image = "rbxassetid://4483345998",
+                Time = 2
             })
             return
         end
         KickGrabState.Looping = Value
         if Value then
             task.spawn(ExecuteKickGrabLoop)
-            Window:CreateNotification({
-                Title = "킥그랩",
+            OrionLib:MakeNotification({
+                Name = "킥그랩",
                 Content = "활성화",
-                Duration = 2
+                Image = "rbxassetid://4483345998",
+                Time = 2
             })
         else
-            Window:CreateNotification({
-                Title = "킥그랩",
+            OrionLib:MakeNotification({
+                Name = "킥그랩",
                 Content = "비활성화",
-                Duration = 2
+                Image = "rbxassetid://4483345998",
+                Time = 2
             })
         end
     end
 })
 
-KickGrabExecuteSection:CreateToggle({
+KickGrabExecuteSection:AddToggle({
     Name = "🔄 오토 레그돌",
-    CurrentValue = false,
+    Default = false,
     Callback = function(Value)
         KickGrabState.AutoRagdoll = Value
-        Window:CreateNotification({
-            Title = "오토 래그돌",
+        OrionLib:MakeNotification({
+            Name = "오토 래그돌",
             Content = Value and "활성화" or "비활성화",
-            Duration = 2
+            Image = "rbxassetid://4483345998",
+            Time = 2
         })
     end
 })
 
-KickGrabExecuteSection:CreateToggle({
+KickGrabExecuteSection:AddToggle({
     Name = "❄️ 스노우볼",
-    CurrentValue = false,
+    Default = false,
     Callback = function(Value)
         if Value and #kickGrabTargetList == 0 then
-            Window:CreateNotification({
-                Title = "오류",
+            OrionLib:MakeNotification({
+                Name = "오류",
                 Content = "대상 리스트가 비어있습니다",
-                Duration = 2
+                Image = "rbxassetid://4483345998",
+                Time = 2
             })
             return
         end
         KickGrabState.SnowBallLooping = Value
         if Value then
             task.spawn(ExecuteSnowballLoop)
-            Window:CreateNotification({
-                Title = "스노우볼",
+            OrionLib:MakeNotification({
+                Name = "스노우볼",
                 Content = "활성화",
-                Duration = 2
+                Image = "rbxassetid://4483345998",
+                Time = 2
             })
         else
-            Window:CreateNotification({
-                Title = "스노우볼",
+            OrionLib:MakeNotification({
+                Name = "스노우볼",
                 Content = "비활성화",
-                Duration = 2
+                Image = "rbxassetid://4483345998",
+                Time = 2
             })
         end
     end
@@ -2437,40 +2539,56 @@ KickGrabExecuteSection:CreateToggle({
 -- =============================================
 -- [ 킬그랩 탭 ]
 -- =============================================
-local KillGrabSection = KillGrabTab:CreateSection("⚔️ 킬그랩 설정")
+local KillGrabTab = Window:MakeTab({
+    Name = "킬그랩",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
 
-KillGrabSection:CreateToggle({
+local KillGrabSection = KillGrabTab:AddSection({
+    Name = "⚔️ 킬그랩 설정"
+})
+
+KillGrabSection:AddToggle({
     Name = "🔪 킬그랩 활성화",
-    CurrentValue = false,
+    Default = false,
     Callback = function(Value)
         KillGrabEnabled = Value
         KillGrabF()
-        Window:CreateNotification({
-            Title = "킬그랩",
+        OrionLib:MakeNotification({
+            Name = "킬그랩",
             Content = Value and "활성화 (잡히면 즉시 킬)" or "비활성화",
-            Duration = 2
+            Image = "rbxassetid://4483345998",
+            Time = 2
         })
     end
 })
 
-KillGrabSection:CreateParagraph("이 기능을 켜면 누군가 당신을 그랩했을 때\n그 사람이 즉시 죽습니다.")
+KillGrabSection:AddLabel("이 기능을 켜면 누군가 당신을 그랩했을 때 그 사람이 즉시 죽습니다.")
 
 -- =============================================
 -- [ 킬 플레이어 정하기 탭 ]
 -- =============================================
-local TargetSection = TargetTab:CreateSection("🎯 킬 플레이어 정하기")
+local TargetTab = Window:MakeTab({
+    Name = "킬 플레이어",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
 
-local TargetListDropdown = TargetSection:CreateDropdown({
+local TargetSection = TargetTab:AddSection({
+    Name = "🎯 킬 플레이어 정하기"
+})
+
+local TargetListDropdown = TargetSection:AddDropdown({
     Name = "리스트",
     Options = targetList,
-    CurrentOption = {"열기"},
-    MultipleOptions = true,
+    Default = "열기",
     Callback = function(Options)
         targetList = Options
     end
 })
 
-TargetSection:CreateInput({
+TargetSection:AddTextbox({
     Name = "추가",
     PlaceholderText = "닉네임 입력",
     Callback = function(Value)
@@ -2478,36 +2596,39 @@ TargetSection:CreateInput({
         
         local target = findPlayerByPartialName(Value)
         if not target then
-            Window:CreateNotification({
-                Title = "대상",
+            OrionLib:MakeNotification({
+                Name = "대상",
                 Content = "플레이어를 찾을 수 없음",
-                Duration = 2
+                Image = "rbxassetid://4483345998",
+                Time = 2
             })
             return
         end
         
         for _, name in ipairs(targetList) do
             if name == target.Name then
-                Window:CreateNotification({
-                    Title = "대상",
+                OrionLib:MakeNotification({
+                    Name = "대상",
                     Content = "이미 목록에 있음",
-                    Duration = 2
+                    Image = "rbxassetid://4483345998",
+                    Time = 2
                 })
                 return
             end
         end
         
         table.insert(targetList, target.Name)
-        TargetListDropdown:Refresh(targetList, true)
-        Window:CreateNotification({
-            Title = "대상",
+        TargetListDropdown:Refresh(targetList)
+        OrionLib:MakeNotification({
+            Name = "대상",
             Content = "추가: " .. target.Name,
-            Duration = 2
+            Image = "rbxassetid://4483345998",
+            Time = 2
         })
     end
 })
 
-TargetSection:CreateInput({
+TargetSection:AddTextbox({
     Name = "Remove",
     PlaceholderText = "닉네임 입력",
     Callback = function(Value)
@@ -2516,45 +2637,49 @@ TargetSection:CreateInput({
         for i, name in ipairs(targetList) do
             if name:lower() == Value:lower() then
                 table.remove(targetList, i)
-                TargetListDropdown:Refresh(targetList, true)
-                Window:CreateNotification({
-                    Title = "대상",
+                TargetListDropdown:Refresh(targetList)
+                OrionLib:MakeNotification({
+                    Name = "대상",
                     Content = "제거: " .. name,
-                    Duration = 2
+                    Image = "rbxassetid://4483345998",
+                    Time = 2
                 })
                 return
             end
         end
-        Window:CreateNotification({
-            Title = "대상",
+        OrionLib:MakeNotification({
+            Name = "대상",
             Content = "없는 이름",
-            Duration = 2
+            Image = "rbxassetid://4483345998",
+            Time = 2
         })
     end
 })
 
-local TargetExecuteSection = TargetTab:CreateSection("⚔️ 실행")
+local TargetExecuteSection = TargetTab:AddSection({
+    Name = "⚔️ 실행"
+})
 
-TargetExecuteSection:CreateButton({
+TargetExecuteSection:AddButton({
     Name = "💀 킬",
     Callback = function() manualKill("kill") end
 })
 
-TargetExecuteSection:CreateButton({
+TargetExecuteSection:AddButton({
     Name = "👢 킥",
     Callback = function() manualKill("kick") end
 })
 
-local DeletePartDropdown = TargetExecuteSection:CreateDropdown({
+local DeletePartDropdown = TargetExecuteSection:AddDropdown({
     Name = "🦴 제거할 부위",
     Options = {"팔/다리", "모든 다리", "모든 팔"},
-    CurrentOption = "팔/다리",
-    Callback = function(Options)
-        selectedDeletePart = Options
+    Default = "팔/다리",
+    Callback = function(Value)
+        selectedDeletePart = Value
     end
 })
 
-TargetExecuteSection:CreateButton({
+TargetExecuteSection:AddButton({
     Name = "🦴 대상 팔다리 제거",
     Callback = function()
         local count = 0
@@ -2566,15 +2691,16 @@ TargetExecuteSection:CreateButton({
             end
             task.wait(0.2)
         end
-        Window:CreateNotification({
-            Title = "팔다리 제거",
+        OrionLib:MakeNotification({
+            Name = "팔다리 제거",
             Content = count .. "명 처리",
-            Duration = 3
+            Image = "rbxassetid://4483345998",
+            Time = 3
         })
     end
 })
 
-TargetExecuteSection:CreateButton({
+TargetExecuteSection:AddButton({
     Name = "🎯 현재 그랩 대상 제거",
     Callback = function()
         local beamPart = Workspace:FindFirstChild("GrabParts") and Workspace.GrabParts:FindFirstChild("BeamPart")
@@ -2582,35 +2708,44 @@ TargetExecuteSection:CreateButton({
             local targetPlayer = getClosestPlayer(beamPart)
             if targetPlayer then
                 teleportParts(targetPlayer, selectedDeletePart)
-                Window:CreateNotification({
-                    Title = "팔다리 제거",
+                OrionLib:MakeNotification({
+                    Name = "팔다리 제거",
                     Content = targetPlayer.Name,
-                    Duration = 2
+                    Image = "rbxassetid://4483345998",
+                    Time = 2
                 })
             end
         end
     end
 })
 
-local SelectedLabel = TargetTab:CreateLabel("선택됨: 0명")
+local SelectedLabel = TargetTab:AddLabel("선택됨: 0명")
 spawn(function() while task.wait(0.5) do SelectedLabel:Set("선택됨: " .. #targetList .. "명") end end)
 
 -- =============================================
 -- [ 알림 탭 ]
 -- =============================================
-local NotifySection = NotifyTab:CreateSection("🔔 알림 설정")
+local NotifyTab = Window:MakeTab({
+    Name = "알림",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
 
-NotifySection:CreateToggle({
+local NotifySection = NotifyTab:AddSection({
+    Name = "🔔 알림 설정"
+})
+
+NotifySection:AddToggle({
     Name = "👢 킥 알림",
-    CurrentValue = true,
+    Default = true,
     Callback = function(Value)
         kickNotificationsEnabled = Value
     end
 })
 
-NotifySection:CreateToggle({
+NotifySection:AddToggle({
     Name = "🦠 블롭 알림",
-    CurrentValue = true,
+    Default = true,
     Callback = function(Value)
         blobNotificationsEnabled = Value
         if Value then
@@ -2627,11 +2762,19 @@ NotifySection:CreateToggle({
 -- =============================================
 -- [ 설정 탭 ]
 -- =============================================
-local SettingsSection = SettingsTab:CreateSection("⚙️ 설정")
+local SettingsTab = Window:MakeTab({
+    Name = "설정",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
 
-SettingsSection:CreateToggle({
+local SettingsSection = SettingsTab:AddSection({
+    Name = "⚙️ 설정"
+})
+
+SettingsSection:AddToggle({
     Name = "인야숨기기",
-    CurrentValue = true,
+    Default = true,
     Callback = function(Value)
         if _G and _G.ToggleUI then
             _G.ToggleUI = not Value
@@ -2639,7 +2782,7 @@ SettingsSection:CreateToggle({
     end
 })
 
-SettingsSection:CreateParagraph("PC 단축키\nZ 키: 시선 방향 텔레포트")
+SettingsSection:AddLabel("PC 단축키\nZ 키: 시선 방향 텔레포트")
 
 -- =============================================
 -- [ TP 버튼 생성 ]
@@ -2656,8 +2799,14 @@ AntiGrabF(true)
 setupKickNotifications()
 setupBlobNotifications()
 
-Window:CreateNotification({
-    Title = "🚀 로드 완료",
-    Content = "Amethyst UI 적용 | 킬그랩 포함",
-    Duration = 5
+OrionLib:MakeNotification({
+    Name = "🚀 로드 완료",
+    Content = "Orion Library 적용 | 킬그랩 포함",
+    Image = "rbxassetid://4483345998",
+    Time = 5
 })
+
+-- =============================================
+-- [ Orion Library 초기화 (필수!) ]
+-- =============================================
+OrionLib:Init()
