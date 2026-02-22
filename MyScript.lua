@@ -1700,7 +1700,7 @@ end
 -- [ Rayfield UI 설정 (키 시스템 추가) ]
 -- =============================================
 local Window = Rayfield:CreateWindow({
-    Name = "FTAP|도검",
+    Name = "FTAP | 도검",
     LoadingTitle = "제작자: sos107ppq",
     ConfigurationSaving = { Enabled = false },
     KeySystem = true,
