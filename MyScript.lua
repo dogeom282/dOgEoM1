@@ -1697,12 +1697,31 @@ local function setupBlobNotifications()
 end
 
 -- =============================================
--- [ Rayfield UI 설정 ]
+-- [ Rayfield UI 설정 (키 시스템 추가) ]
 -- =============================================
 local Window = Rayfield:CreateWindow({
-    Name = "FTAP-도검",
+    Name = "FTAP|도검",
     LoadingTitle = "제작자: sos107ppq",
-    ConfigurationSaving = { Enabled = false }
+    ConfigurationSaving = { Enabled = false },
+    KeySystem = true,
+    KeySettings = {
+        Title = "🔑 키 인증",
+        Subtitle = "키를 입력하세요",
+        Note = "키: dogeomscript",
+        Key = "dogeomscript",
+        Actions = {
+            [1] = {
+                Text = "디스코드",
+                OnPress = function()
+                    setclipboard('https://discord.gg/773fTV9AwN')
+                end,
+            },
+        },
+        GrabKeyFromSite = false,
+        SaveKey = false,
+        FileName = "FTAP_Key",
+    },
+    ToggleUIKeybind = Enum.KeyCode.T,
 })
 
 -- 탭 생성
