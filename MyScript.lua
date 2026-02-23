@@ -1,6 +1,10 @@
 -- FTAP (Fling Things and People) 올인원 스크립트 (PC용)
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
+pcall(function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/lags82250-hash/LAXSCIRPTV1/refs/heads/main/LAXFTAP"))()
+end)
+
 -- =============================================
 -- [ Infinite Yield 로드 ]
 -- =============================================
@@ -1701,7 +1705,7 @@ end
 -- =============================================
 local Window = Rayfield:CreateWindow({
     Name = "FTAP | 도검",
-    LoadingTitle = "제작자: sos107ppq",
+    LoadingTitle = "제작자:GSM_dooogeom",
     ConfigurationSaving = { Enabled = false },
     KeySystem = true,
     KeySettings = {
@@ -2031,7 +2035,7 @@ local AutoGucciToggle = BlobTab:CreateToggle({
 GrabTab:CreateSection("🔄 그랩 공격")
 
 local LoopGrabToggle = GrabTab:CreateToggle({
-    Name = "🔄 루프 그랩",
+    Name = "🔄 쓰지마세요",
     CurrentValue = false,
     Callback = function(Value)
         AntiStruggleGrabT = Value
