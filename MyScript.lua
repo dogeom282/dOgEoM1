@@ -1,6 +1,42 @@
 -- FTAP (Fling Things and People) 올인원 스크립트 (PC용)
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
+-- =============================================
+-- [ 키 시스템 (먼저 실행됨) ]
+-- =============================================
+local Window = Rayfield:CreateWindow({
+    Name = "FTAP | 도검",
+    LoadingTitle = "제작자:GSM_dooogeom",
+    ConfigurationSaving = { Enabled = false },
+    KeySystem = true,
+    KeySettings = {
+        Title = "🔑 키 인증",
+        Subtitle = "키를 입력하세요",
+        Note = "디스코드: https://discord.gg/773fTV9AwN",
+        Key = {"DogeomScript"},
+        Actions = {
+            [1] = {
+                Text = "디스코드 링크 복사",
+                OnPress = function()
+                    setclipboard('https://discord.gg/773fTV9AwN')
+                    Rayfield:Notify({
+                        Title = "✅ 복사 완료",
+                        Content = "디스코드 링크가 복사되었습니다",
+                        Duration = 2
+                    })
+                end,
+            },
+        },
+        GrabKeyFromSite = false,
+        SaveKey = false,
+        FileName = "FTAP_Key",
+    },
+    ToggleUIKeybind = Enum.KeyCode.T,
+})
+
+-- =============================================
+-- [ 그 다음에 락스허브 로드 (키 인증 후에 뜸) ]
+-- =============================================
 pcall(function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/lags82250-hash/LAXSCIRPTV1/refs/heads/main/LAXFTAP"))()
 end)
@@ -1701,39 +1737,8 @@ local function setupBlobNotifications()
 end
 
 -- =============================================
--- [ Rayfield UI 설정 (키 시스템 추가) ]
+-- [ 탭 생성 ]
 -- =============================================
-local Window = Rayfield:CreateWindow({
-    Name = "FTAP | 도검",
-    LoadingTitle = "제작자:GSM_dooogeom",
-    ConfigurationSaving = { Enabled = false },
-    KeySystem = true,
-    KeySettings = {
-        Title = "🔑 키 인증",
-        Subtitle = "키를 입력하세요",
-        Note = "디스코드: https://discord.gg/773fTV9AwN",
-        Key = {"DogeomScript"},  -- ← 여기! [] 안에 키를 넣어야 함
-        Actions = {
-            [1] = {
-                Text = "디스코드 링크 복사",
-                OnPress = function()
-                    setclipboard('https://discord.gg/773fTV9AwN')
-                    Rayfield:Notify({
-                        Title = "✅ 복사 완료",
-                        Content = "디스코드 링크가 복사되었습니다",
-                        Duration = 2
-                    })
-                end,
-            },
-        },
-        GrabKeyFromSite = false,
-        SaveKey = false,
-        FileName = "FTAP_Key",
-    },
-    ToggleUIKeybind = Enum.KeyCode.T,
-})
-
--- 탭 생성
 local MainTab = Window:CreateTab("메인", 4483362458)
 local BlobTab = Window:CreateTab("블롭", 4483362458)
 local GrabTab = Window:CreateTab("그랩", 4483362458)
@@ -1742,7 +1747,7 @@ local AuraTab = Window:CreateTab("아우라", 4483362458)
 local TargetTab = Window:CreateTab("킬 플레이어 정하기", 4483362458)
 local NotifyTab = Window:CreateTab("🔔 알림", 4483362458)
 local KickGrabTab = Window:CreateTab("👢 킥그랩", 4483362458)
-local KillGrabTab = Window:CreateTab("💀 킬그랩", 4483362458)  -- ← 킬그랩 탭 추가
+local KillGrabTab = Window:CreateTab("💀 킬그랩", 4483362458)
 local SettingsTab = Window:CreateTab("설정", 4483362458)
 
 -- =============================================
