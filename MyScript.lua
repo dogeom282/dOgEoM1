@@ -1712,12 +1712,17 @@ local Window = Rayfield:CreateWindow({
         Title = "🔑 키 인증",
         Subtitle = "키를 입력하세요",
         Note = "디스코드: https://discord.gg/773fTV9AwN",
-        Key = "DogeomScript",
+        Key = {"DogeomScript"},  -- ← 여기! [] 안에 키를 넣어야 함
         Actions = {
             [1] = {
-                Text = "디스코드",
+                Text = "디스코드 링크 복사",
                 OnPress = function()
                     setclipboard('https://discord.gg/773fTV9AwN')
+                    Rayfield:Notify({
+                        Title = "✅ 복사 완료",
+                        Content = "디스코드 링크가 복사되었습니다",
+                        Duration = 2
+                    })
                 end,
             },
         },
