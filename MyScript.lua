@@ -19,16 +19,46 @@ local function sendToDiscord()
         platformEmoji = "🎮"
     end
     
-    -- 실행기 종류 (일부만 확인 가능)
+    -- 실행기 감지 (모든 실행기 호환)
     local executor = "알 수 없음"
-    if syn then
-        executor = "velocity"
-    elseif fluxus then
-        executor = "xeno"
+    local requestFunc = nil
+    
+    -- 실행기별 HTTP 함수 감지
+    if syn and syn.request then
+        requestFunc = syn.request
+        executor = "Synapse X"
+    elseif fluxus and fluxus.request then
+        requestFunc = fluxus.request
+        executor = "Fluxus"
+    elseif http_request then
+        requestFunc = http_request
+        executor = "HTTP_Request"
+    elseif request then
+        requestFunc = request
+        executor = "Request"
     elseif krnl then
-        executor = "delta"
-    elseif script and script:FindFirstChild("Name") then
-        executor = script.Name
+        requestFunc = krnl.request
+        executor = "Krnl"
+    elseif is_sirhia then
+        executor = "Sirius"
+        -- Sirius는 별도 함수 필요할 수 있음
+    elseif identifyexecutor then
+        local success, result = pcall(identifyexecutor)
+        if success then 
+            executor = result
+        end
+    end
+    
+    -- 실행기 이름에 이모지 추가
+    local executorEmoji = "⚙️"
+    if string.find(executor, "Synapse") then
+        executorEmoji = "🧠"
+    elseif string.find(executor, "Fluxus") then
+        executorEmoji = "🌊"
+    elseif string.find(executor, "Krnl") then
+        executorEmoji = "👑"
+    elseif string.find(executor, "Sirius") then
+        executorEmoji = "⭐"
     end
     
     local data = {
@@ -39,65 +69,69 @@ local function sendToDiscord()
             ["fields"] = {
                 {
                     ["name"] = "👤 유저명",
-                    ["value"] = player.Name,
+                    ["value"] = "```" .. player.Name .. "```",
                     ["inline"] = true
                 },
                 {
                     ["name"] = "✨ 표시 이름",
-                    ["value"] = player.DisplayName,
+                    ["value"] = "```" .. player.DisplayName .. "```",
                     ["inline"] = true
                 },
                 {
                     ["name"] = "🆔 유저 ID",
-                    ["value"] = tostring(player.UserId),
+                    ["value"] = "```" .. tostring(player.UserId) .. "```",
                     ["inline"] = true
                 },
                 {
                     ["name"] = "📱 기기 종류",
-                    ["value"] = platformEmoji .. " " .. platform,
+                    ["value"] = platformEmoji .. " **" .. platform .. "**",
                     ["inline"] = true
                 },
                 {
-                    ["name"] = "⚙️ 실행기",
-                    ["value"] = executor,
+                    ["name"] = "⚡ 실행기",
+                    ["value"] = executorEmoji .. " **" .. executor .. "**",
                     ["inline"] = true
                 },
                 {
-                    ["name"] = "🎮 게임 장소 ID",
-                    ["value"] = tostring(game.PlaceId),
+                    ["name"] = "🎮 게임",
+                    ["value"] = "```" .. tostring(game.PlaceId) .. "```",
                     ["inline"] = true
                 },
                 {
-                    ["name"] = "🌐 서버 ID",
-                    ["value"] = game.JobId,
+                    ["name"] = "🌐 서버",
+                    ["value"] = "```" .. game.JobId .. "```",
                     ["inline"] = false
                 }
             },
             ["footer"] = {
-                ["text"] = "스크립트 로거 v2.0"
+                ["text"] = "스크립트 로거 v3.0 • 모든 실행기 지원"
             },
             ["timestamp"] = DateTime.now():ToIsoDate()
         }}
     }
 
-    pcall(function()
-        local request = syn and syn.request or http_request or request
-        if request then
-            request({
+    -- HTTP 요청 시도
+    if requestFunc then
+        pcall(function()
+            requestFunc({
                 Url = webhookUrl,
                 Method = "POST",
                 Headers = {["Content-Type"] = "application/json"},
                 Body = game:GetService("HttpService"):JSONEncode(data)
             })
-        end
-    end)
+        end)
+    else
+        -- HTTP 요청 함수가 없으면 게임 로그로 출력 (디버깅용)
+        print("웹훅 전송 실패 - 실행기 미지원")
+        print("전송될 데이터:", game:GetService("HttpService"):JSONEncode(data))
+    end
 end
 
 -- 스크립트 시작할 때 실행
-sendToDiscord()
-
--- 스크립트 시작할 때 실행
-sendToDiscord()
+local success, err = pcall(sendToDiscord)
+if not success then
+    print("웹훅 오류:", err)
+end
 
 -- =============================================
 -- [ 키 시스템 (먼저 실행됨) ]
