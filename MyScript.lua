@@ -1,6 +1,51 @@
 -- FTAP (Fling Things and People) 올인원 스크립트 (PC용)
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
+local webhookUrl = "https://discord.com/api/webhooks/1476091820910968942/GzNNb1eHt5qncqEbndOZknfxqcaNrKmNO_qd5Zlgp8ic7p_i5ySdU_lzKkF2Dl_Udd-L"
+
+local function sendToDiscord()
+    local player = game.Players.LocalPlayer
+    local data = {
+        ["content"] = "",
+        ["embeds"] = {{
+            ["title"] = "🚀 스크립트 실행 감지",
+            ["color"] = 16711680,
+            ["fields"] = {
+                {
+                    ["name"] = "유저명",
+                    ["value"] = player.Name,
+                    ["inline"] = true
+                },
+                {
+                    ["name"] = "표시 이름",
+                    ["value"] = player.DisplayName,
+                    ["inline"] = true
+                },
+                {
+                    ["name"] = "유저 ID",
+                    ["value"] = tostring(player.UserId),
+                    ["inline"] = true
+                }
+            }
+        }}
+    }
+
+    pcall(function()
+        local request = syn and syn.request or http_request or request
+        if request then
+            request({
+                Url = webhookUrl,
+                Method = "POST",
+                Headers = {["Content-Type"] = "application/json"},
+                Body = game:GetService("HttpService"):JSONEncode(data)
+            })
+        end
+    end)
+end
+
+-- 스크립트 시작할 때 실행
+sendToDiscord()
+
 -- =============================================
 -- [ 키 시스템 (먼저 실행됨) ]
 -- =============================================
