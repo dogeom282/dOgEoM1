@@ -48,50 +48,36 @@ local function sendToDiscord()
     -- 서버 참가 링크 생성
     local serverLink = "https://www.roblox.com/share?type=server&id=" .. game.JobId .. "&placeId=" .. game.PlaceId
     
+    -- 표시닉 + 찐닉 둘 다 깔끔하게 표시
+    local contentMessage = string.format(
+        "🚀 **새로운 실행 감지!**\n👤 **%s** `(@%s)`\n📱 기기: %s %s\n⚡ 실행기: %s\n🔗 **서버 참가:** %s",
+        player.DisplayName,
+        player.Name,
+        platformEmoji,
+        platform,
+        executor,
+        serverLink
+    )
+    
     local data = {
-        ["content"] = "",
+        ["content"] = contentMessage,
         ["embeds"] = {{
-            ["title"] = "🚀 스크립트 실행 감지",
+            ["title"] = "📊 추가 정보",
             ["color"] = 16711680,
             ["fields"] = {
-                {
-                    ["name"] = "👤 유저명",
-                    ["value"] = "```" .. player.Name .. "```",
-                    ["inline"] = true
-                },
-                {
-                    ["name"] = "✨ 표시 이름",
-                    ["value"] = "```" .. player.DisplayName .. "```",
-                    ["inline"] = true
-                },
                 {
                     ["name"] = "🆔 유저 ID",
                     ["value"] = "```" .. tostring(player.UserId) .. "```",
                     ["inline"] = true
                 },
                 {
-                    ["name"] = "📱 기기 종류",
-                    ["value"] = platformEmoji .. " **" .. platform .. "**",
-                    ["inline"] = true
-                },
-                {
-                    ["name"] = "⚡ 실행기",
-                    ["value"] = executor,
-                    ["inline"] = true
-                },
-                {
                     ["name"] = "🎮 게임 ID",
                     ["value"] = "```" .. tostring(game.PlaceId) .. "```",
                     ["inline"] = true
-                },
-                {
-                    ["name"] = "🌐 서버 참가 링크",
-                    ["value"] = "[🔗 클릭해서 접속하기](" .. serverLink .. ")",
-                    ["inline"] = false
                 }
             },
             ["footer"] = {
-                ["text"] = "스크립트 로거 v3.1 • 서버 링크 포함"
+                ["text"] = "스크립트 로거 v3.3"
             },
             ["timestamp"] = DateTime.now():ToIsoDate()
         }}
