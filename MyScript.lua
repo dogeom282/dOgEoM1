@@ -636,14 +636,13 @@ local function GetPallet()
 end
 
 -- =============================================
--- [ 킥그랩 메인 루프 ]
+-- [ 킥그랩 메인 루프 (도배 버전) ]
 -- =============================================
 local function ExecuteKickGrabLoop()
     local lastStrikeTime = tick() 
     local lastSpawnTime = 0 
     local currentPalletRef = nil
     local isPalletOwned = false
-    local frameToggle = true
     local currentTargetIndex = 1
 
     while KickGrabState.Looping do
@@ -678,12 +677,11 @@ local function ExecuteKickGrabLoop()
             local rSpawn = SpawnToyRemote
             
             local distance = (myHrp.Position - targetHrp.Position).Magnitude
-            
             if distance > 30 then
                 local ping = plr:GetNetworkPing()
                 local offset = targetHrp.Position + (targetHrp.Velocity * (ping + 0.15))
                 myHrp.CFrame = CFrame.new(offset) * targetHrp.CFrame.Rotation
-                task.wait(0.01)
+                task.wait(0.05)
             end
             
             if rOwner then
@@ -694,29 +692,45 @@ local function ExecuteKickGrabLoop()
             end
             
             local detentionPos
-            if KickGrabState.Mode == "up" then 
+            if KickGrabState.Mode == "위" then 
                 detentionPos = myHrp.CFrame * CFrame.new(0, 18, 0)
-            elseif KickGrabState.Mode == "down" then 
+            elseif KickGrabState.Mode == "아래" then 
                 detentionPos = myHrp.CFrame * CFrame.new(0, -10, 0)
             else 
                 detentionPos = cam.CFrame * CFrame.new(0, 0, -KickGrabState.DetentionDist)
             end
             
+            -- ===== SetOwner + Destroy 도배 (frameToggle 제거) =====
             if rOwner and rDestroy then
-                if frameToggle then
-                    rOwner:FireServer(targetHrp, detentionPos)
+                -- 20번 연속 도배
+                for i = 1, 20 do
+                    -- SetOwner 실행
+                    pcall(function()
+                        rOwner:FireServer(targetHrp, detentionPos)
+                        if targetBody then
+                            rOwner:FireServer(targetBody, detentionPos)
+                        end
+                    end)
+                    
+                    -- 위치 고정
                     targetHrp.CFrame = detentionPos
                     targetHrp.AssemblyLinearVelocity = Vector3.zero
                     if targetBody then
-                        rOwner:FireServer(targetBody, detentionPos)
                         targetBody.CFrame = detentionPos
                         targetBody.AssemblyLinearVelocity = Vector3.zero
                     end
-                else
-                    rDestroy:FireServer(targetHrp)
-                    if targetBody then rDestroy:FireServer(targetBody) end
+                    
+                    -- DestroyGrabLine 실행
+                    pcall(function()
+                        rDestroy:FireServer(targetHrp)
+                        if targetBody then
+                            rDestroy:FireServer(targetBody)
+                        end
+                    end)
+                    
+                    -- 프레임 단위 대기 (RenderStepped)
+                    RunService.RenderStepped:Wait()
                 end
-                frameToggle = not frameToggle
             end
 
             if KickGrabState.AutoRagdoll then
@@ -741,7 +755,7 @@ local function ExecuteKickGrabLoop()
                         if ExtendGrabLine then ExtendGrabLine:FireServer(25) end
                         if rOwner then rOwner:FireServer(pallet, pallet.CFrame) end
                         isPalletOwned = true
-                        task.wait(0.1) 
+                        task.wait(0.05)
                     else
                         local currentTime = tick()
                         local timeSinceStrike = currentTime - lastStrikeTime
@@ -757,10 +771,9 @@ local function ExecuteKickGrabLoop()
             
             currentTargetIndex = currentTargetIndex + 1
         end
-        RunService.Heartbeat:Wait()
+        RunService.RenderStepped:Wait()
     end
 end
-
 -- =============================================
 -- [ SnowBall 루프 함수 ]
 -- =============================================
