@@ -636,7 +636,7 @@ local function GetPallet()
 end
 
 -- =============================================
--- [ 킥그랩 메인 루프 (초고속 도배 버전) ]
+-- [ 킥그랩 메인 루프 (30/30 도배) ]
 -- =============================================
 local function ExecuteKickGrabLoop()
     local lastStrikeTime = tick() 
@@ -645,6 +645,8 @@ local function ExecuteKickGrabLoop()
     local isPalletOwned = false
     local currentTargetIndex = 1
     local frameCount = 0
+    local setOwnerCount = 0
+    local destroyCount = 0
 
     while KickGrabState.Looping do
         if #kickGrabTargetList == 0 then
@@ -654,6 +656,13 @@ local function ExecuteKickGrabLoop()
         if currentTargetIndex > #kickGrabTargetList then
             currentTargetIndex = 1
             frameCount = frameCount + 1
+            
+            -- 1초마다 통계 표시 (60프레임 기준)
+            if frameCount % 60 == 0 then
+                print(string.format("SetOwner: %d, Destroy: %d", setOwnerCount, destroyCount))
+                setOwnerCount = 0
+                destroyCount = 0
+            end
         end
         
         local targetName = kickGrabTargetList[currentTargetIndex]
@@ -678,7 +687,6 @@ local function ExecuteKickGrabLoop()
             local rDestroy = DestroyGrabLine
             local rSpawn = SpawnToyRemote
             
-            -- 거리 계산
             local distance = (myHrp.Position - targetHrp.Position).Magnitude
             if distance > 30 then
                 local ping = plr:GetNetworkPing()
@@ -687,7 +695,6 @@ local function ExecuteKickGrabLoop()
                 task.wait(0.05)
             end
             
-            -- 감금 위치
             local detentionPos
             if KickGrabState.Mode == "위" then 
                 detentionPos = myHrp.CFrame * CFrame.new(0, 18, 0)
@@ -697,15 +704,18 @@ local function ExecuteKickGrabLoop()
                 detentionPos = cam.CFrame * CFrame.new(0, 0, -KickGrabState.DetentionDist)
             end
             
-            -- ===== 초고속 도배 파트 (1초 60회) =====
+            -- ===== 30/30 도배 파트 =====
             if rOwner and rDestroy then
-                -- SetOwner 먼저
-                pcall(function()
-                    rOwner:FireServer(targetHrp, detentionPos)
-                    if targetBody then
-                        rOwner:FireServer(targetBody, detentionPos)
-                    end
-                end)
+                -- SetOwner 30번
+                for i = 1, 30 do
+                    pcall(function()
+                        rOwner:FireServer(targetHrp, detentionPos)
+                        if targetBody then
+                            rOwner:FireServer(targetBody, detentionPos)
+                        end
+                    end)
+                    setOwnerCount = setOwnerCount + 1
+                end
                 
                 -- 위치 고정
                 targetHrp.CFrame = detentionPos
@@ -715,16 +725,18 @@ local function ExecuteKickGrabLoop()
                     targetBody.AssemblyLinearVelocity = Vector3.zero
                 end
                 
-                -- DestroyGrabLine 실행
-                pcall(function()
-                    rDestroy:FireServer(targetHrp)
-                    if targetBody then
-                        rDestroy:FireServer(targetBody)
-                    end
-                end)
+                -- Destroy 30번
+                for i = 1, 30 do
+                    pcall(function()
+                        rDestroy:FireServer(targetHrp)
+                        if targetBody then
+                            rDestroy:FireServer(targetBody)
+                        end
+                    end)
+                    destroyCount = destroyCount + 1
+                end
             end
 
-            -- 오토 레그돌 (선택사항)
             if KickGrabState.AutoRagdoll then
                 local pallet = GetPallet()
                 if not pallet and (tick() - lastSpawnTime > 3.0) then
@@ -763,7 +775,6 @@ local function ExecuteKickGrabLoop()
             
             currentTargetIndex = currentTargetIndex + 1
         end
-        -- 프레임마다 실행 (1초 60회)
         RunService.RenderStepped:Wait()
     end
 end
