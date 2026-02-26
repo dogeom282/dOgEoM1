@@ -636,7 +636,7 @@ local function GetPallet()
 end
 
 -- =============================================
--- [ 킥그랩 메인 루프 (도배 버전) ]
+-- [ 킥그랩 메인 루프 (초고속 도배 버전) ]
 -- =============================================
 local function ExecuteKickGrabLoop()
     local lastStrikeTime = tick() 
@@ -644,6 +644,7 @@ local function ExecuteKickGrabLoop()
     local currentPalletRef = nil
     local isPalletOwned = false
     local currentTargetIndex = 1
+    local frameCount = 0
 
     while KickGrabState.Looping do
         if #kickGrabTargetList == 0 then
@@ -652,6 +653,7 @@ local function ExecuteKickGrabLoop()
         
         if currentTargetIndex > #kickGrabTargetList then
             currentTargetIndex = 1
+            frameCount = frameCount + 1
         end
         
         local targetName = kickGrabTargetList[currentTargetIndex]
@@ -676,6 +678,7 @@ local function ExecuteKickGrabLoop()
             local rDestroy = DestroyGrabLine
             local rSpawn = SpawnToyRemote
             
+            -- 거리 계산
             local distance = (myHrp.Position - targetHrp.Position).Magnitude
             if distance > 30 then
                 local ping = plr:GetNetworkPing()
@@ -684,13 +687,7 @@ local function ExecuteKickGrabLoop()
                 task.wait(0.05)
             end
             
-            if rOwner then
-                rOwner:FireServer(targetHrp, targetHrp.CFrame)
-                if targetBody then
-                    rOwner:FireServer(targetBody, targetBody.CFrame)
-                end
-            end
-            
+            -- 감금 위치
             local detentionPos
             if KickGrabState.Mode == "위" then 
                 detentionPos = myHrp.CFrame * CFrame.new(0, 18, 0)
@@ -700,39 +697,34 @@ local function ExecuteKickGrabLoop()
                 detentionPos = cam.CFrame * CFrame.new(0, 0, -KickGrabState.DetentionDist)
             end
             
-            -- ===== SetOwner + Destroy 도배 (frameToggle 제거) =====
+            -- ===== 초고속 도배 파트 (1초 60회) =====
             if rOwner and rDestroy then
-                -- 20번 연속 도배
-                for i = 1, 20 do
-                    -- SetOwner 실행
-                    pcall(function()
-                        rOwner:FireServer(targetHrp, detentionPos)
-                        if targetBody then
-                            rOwner:FireServer(targetBody, detentionPos)
-                        end
-                    end)
-                    
-                    -- 위치 고정
-                    targetHrp.CFrame = detentionPos
-                    targetHrp.AssemblyLinearVelocity = Vector3.zero
+                -- SetOwner 먼저
+                pcall(function()
+                    rOwner:FireServer(targetHrp, detentionPos)
                     if targetBody then
-                        targetBody.CFrame = detentionPos
-                        targetBody.AssemblyLinearVelocity = Vector3.zero
+                        rOwner:FireServer(targetBody, detentionPos)
                     end
-                    
-                    -- DestroyGrabLine 실행
-                    pcall(function()
-                        rDestroy:FireServer(targetHrp)
-                        if targetBody then
-                            rDestroy:FireServer(targetBody)
-                        end
-                    end)
-                    
-                    -- 프레임 단위 대기 (RenderStepped)
-                    RunService.RenderStepped:Wait()
+                end)
+                
+                -- 위치 고정
+                targetHrp.CFrame = detentionPos
+                targetHrp.AssemblyLinearVelocity = Vector3.zero
+                if targetBody then
+                    targetBody.CFrame = detentionPos
+                    targetBody.AssemblyLinearVelocity = Vector3.zero
                 end
+                
+                -- DestroyGrabLine 실행
+                pcall(function()
+                    rDestroy:FireServer(targetHrp)
+                    if targetBody then
+                        rDestroy:FireServer(targetBody)
+                    end
+                end)
             end
 
+            -- 오토 레그돌 (선택사항)
             if KickGrabState.AutoRagdoll then
                 local pallet = GetPallet()
                 if not pallet and (tick() - lastSpawnTime > 3.0) then
@@ -771,6 +763,7 @@ local function ExecuteKickGrabLoop()
             
             currentTargetIndex = currentTargetIndex + 1
         end
+        -- 프레임마다 실행 (1초 60회)
         RunService.RenderStepped:Wait()
     end
 end
