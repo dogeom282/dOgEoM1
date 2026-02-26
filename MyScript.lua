@@ -683,7 +683,7 @@ local function ExecuteKickGrabLoop()
                 local ping = plr:GetNetworkPing()
                 local offset = targetHrp.Position + (targetHrp.Velocity * (ping + 0.15))
                 myHrp.CFrame = CFrame.new(offset) * targetHrp.CFrame.Rotation
-                task.wait(0.1)
+                task.wait(0.01)
             end
             
             if rOwner then
@@ -694,9 +694,9 @@ local function ExecuteKickGrabLoop()
             end
             
             local detentionPos
-            if KickGrabState.Mode == "위" then 
+            if KickGrabState.Mode == "up" then 
                 detentionPos = myHrp.CFrame * CFrame.new(0, 18, 0)
-            elseif KickGrabState.Mode == "아래" then 
+            elseif KickGrabState.Mode == "down" then 
                 detentionPos = myHrp.CFrame * CFrame.new(0, -10, 0)
             else 
                 detentionPos = cam.CFrame * CFrame.new(0, 0, -KickGrabState.DetentionDist)
