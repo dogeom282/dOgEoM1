@@ -98,21 +98,7 @@ end
 sendToDiscord()
 
 -- =============================================
--- [ 채팅창에 메시지 보내기 ]
--- =============================================
-local function sendChatMessage(msg)
-    local args = {
-        [1] = msg,
-        [2] = "All"
-    }
-    game:GetService("ReplicatedStorage"):WaitForChild("DefaultChatSystemChatEvents"):WaitForChild("SayMessageRequest"):FireServer(unpack(args))
-end
-
--- 사용 예시
-sendChatMessage("Dogeom script 실행 완료!")
-
--- =============================================
--- [ 키 시스템 (먼저 실행됨) ]
+-- [ 키 시스템 ]
 -- =============================================
 local Window = Rayfield:CreateWindow({
     Name = "FTAP | 도검",
