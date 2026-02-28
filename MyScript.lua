@@ -1956,50 +1956,62 @@ local KillGrabTab = Window:CreateTab("💀 킬그랩", 4483362458)
 local SettingsTab = Window:CreateTab("설정", 4483362458)
 
 -- =============================================
--- [ 메인 탭 ]
+-- [ 메인 탭 - 안티 그랩 (콜백 에러 해결) ]
 -- =============================================
 MainTab:CreateSection("🛡️ 기본 방어")
 
+-- 안티 그랩 토글 (Flag 추가!)
 local AntiGrabToggle = MainTab:CreateToggle({
     Name = "⚡ 안티 그랩",
     CurrentValue = false,
+    Flag = "AntiGrabMainToggle",  -- ← Flag 추가!
     Callback = function(Value)
         isAntiGrabEnabled = Value
         AntiGrabF(Value)
     end
 })
 
+-- 쓰지마세요 버튼 (Flag 추가!)
 MainTab:CreateButton({
     Name = "🔓 쓰지마세요",
+    Flag = "ManualReleaseButton",  -- ← Flag 추가!
     Callback = ManualRelease
 })
 
+-- PCLD 보기 토글 (Flag 추가!)
 local PcldViewToggle = MainTab:CreateToggle({
     Name = "👁️ PCLD 보기",
     CurrentValue = false,
+    Flag = "PcldViewToggle",  -- ← Flag 추가!
     Callback = function(Value)
         pcldViewEnabled = Value
         togglePcldView(Value)
     end
 })
 
+-- 베리어 노클립 토글 (Flag 추가!)
 local BarrierNoclipToggle = MainTab:CreateToggle({
     Name = "🧱 베리어 노클립",
     CurrentValue = false,
+    Flag = "BarrierNoclipToggle",  -- ← Flag 추가!
     Callback = function(Value)
         BarrierCanCollideT = Value
         BarrierCanCollideF()
     end
 })
 
+-- 집 베리어 부수기 버튼 (Flag 추가!)
 MainTab:CreateButton({
     Name = "💥 집 베리어 부수기",
+    Flag = "PlotBarrierDeleteButton",  -- ← Flag 추가!
     Callback = PlotBarrierDelete
 })
 
+-- 안티 킥 토글 (Flag 추가!)
 local AntiPCLDToggle = MainTab:CreateToggle({
     Name = "🛡️ 안티 킥",
     CurrentValue = false,
+    Flag = "AntiPCLDToggle",  -- ← Flag 추가!
     Callback = function(Value)
         AntiPCLDEnabled = Value
         if Value then
@@ -2010,27 +2022,6 @@ local AntiPCLDToggle = MainTab:CreateToggle({
         end
     end
 })
-
-MainTab:CreateSection("📊 상태")
-
-local StatusLabel = MainTab:CreateLabel("상태: 확인 중...", 4483362458)
-
-spawn(function()
-    while task.wait(0.5) do
-        local char = plr.Character
-        local isHeld = plr:FindFirstChild("IsHeld")
-        local head = char and char:FindFirstChild("Head")
-        local por = head and head:FindFirstChild("PartOwner")
-        
-        if isHeld and isHeld.Value then
-            StatusLabel:Set("상태: 🟡 잡힘")
-        elseif por and por.Value ~= "" then
-            StatusLabel:Set("상태: 🟠 오너쉽 있음 (" .. por.Value .. ")")
-        else
-            StatusLabel:Set("상태: 🟢 안전")
-        end
-    end
-end)
 
 -- =============================================
 -- [ 블롭 탭 ]
