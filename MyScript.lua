@@ -2355,7 +2355,7 @@ local AntiPaintToggle = SecurityTab:CreateToggle({
 })
 
 -- =============================================
--- [ 킥그랩 탭 ]
+-- [ 킥그랩 탭 (부분 검색) ]
 -- =============================================
 KickGrabTab:CreateSection("🎯 킥그랩 대상 리스트")
 
@@ -2364,35 +2364,52 @@ local KickGrabTargetDropdown = KickGrabTab:CreateDropdown({
     Options = kickGrabTargetList,
     CurrentOption = {"열기"},
     MultipleOptions = true,
-    Callback = function(Options) end
+    Callback = function(Options)
+        kickGrabTargetList = Options
+    end
 })
 
+-- 🔽 부분 검색 추가 버전
 KickGrabTab:CreateInput({
-    Name = "Add",
-    PlaceholderText = "닉네임 입력",
+    Name = "Add (부분 검색)",
+    PlaceholderText = "닉네임 일부 입력 (예: 홍)",
     RemoveTextAfterFocusLost = true,
     Callback = function(Value)
         if not Value or Value == "" then return end
         
-        local target = findPlayerByPartialName(Value)
+        local target = findPlayerByPartial(Value)
         if not target then
-            Rayfield:Notify({Title = "킥그랩", Content = "플레이어를 찾을 수 없음", Duration = 2})
+            Rayfield:Notify({
+                Title = "❌ 오류",
+                Content = "플레이어를 찾을 수 없음",
+                Duration = 2
+            })
             return
         end
         
+        -- 중복 체크
         for _, name in ipairs(kickGrabTargetList) do
             if name == target.Name then
-                Rayfield:Notify({Title = "킥그랩", Content = "이미 리스트에 있음", Duration = 2})
+                Rayfield:Notify({
+                    Title = "⚠️ 중복",
+                    Content = target.Name .. " 이미 있음",
+                    Duration = 2
+                })
                 return
             end
         end
         
         table.insert(kickGrabTargetList, target.Name)
         KickGrabTargetDropdown:Refresh(kickGrabTargetList, true)
-        Rayfield:Notify({Title = "킥그랩", Content = "추가: " .. target.Name, Duration = 2})
+        Rayfield:Notify({
+            Title = "✅ 추가됨",
+            Content = target.Name,
+            Duration = 2
+        })
     end
 })
 
+-- 🔽 부분 검색 제거 버전
 KickGrabTab:CreateInput({
     Name = "Remove",
     PlaceholderText = "닉네임 입력",
@@ -2400,15 +2417,33 @@ KickGrabTab:CreateInput({
     Callback = function(Value)
         if not Value or Value == "" then return end
         
+        local foundIndex = nil
+        local foundName = nil
+        
+        -- 부분 일치로 리스트에서 찾기
         for i, name in ipairs(kickGrabTargetList) do
-            if name:lower() == Value:lower() then
-                table.remove(kickGrabTargetList, i)
-                KickGrabTargetDropdown:Refresh(kickGrabTargetList, true)
-                Rayfield:Notify({Title = "킥그랩", Content = "제거: " .. name, Duration = 2})
-                return
+            if name:lower():find(Value:lower()) then
+                foundIndex = i
+                foundName = name
+                break
             end
         end
-        Rayfield:Notify({Title = "킥그랩", Content = "리스트에 없는 이름", Duration = 2})
+        
+        if foundIndex then
+            table.remove(kickGrabTargetList, foundIndex)
+            KickGrabTargetDropdown:Refresh(kickGrabTargetList, true)
+            Rayfield:Notify({
+                Title = "✅ 제거됨",
+                Content = foundName,
+                Duration = 2
+            })
+        else
+            Rayfield:Notify({
+                Title = "❌ 오류",
+                Content = "리스트에 없음",
+                Duration = 2
+            })
+        end
     end
 })
 
