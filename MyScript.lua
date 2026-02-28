@@ -2512,8 +2512,20 @@ local LoopToggleButton = LoopGrabTab:CreateToggle({
     CurrentValue = false,
     Callback = function(Value)
         if Value then
-            local success = startLoopGrab()
-            if not success then
+            local target = getGrabbedTarget()
+            if target then
+                startLoopGrab(target)
+                Rayfield:Notify({
+                    Title = "🔄 루프그랩",
+                    Content = target.Name .. " 시작",
+                    Duration = 2
+                })
+            else
+                Rayfield:Notify({
+                    Title = "❌ 오류",
+                    Content = "잡은 상대 없음",
+                    Duration = 2
+                })
                 LoopToggleButton:Set(false)
             end
         else
@@ -2533,14 +2545,17 @@ LoopGrabTab:CreateButton({
 LoopGrabTab:CreateSection("📊 상태")
 
 local LoopStatusLabel = LoopGrabTab:CreateLabel("대기 중...", 4483362458)
-local LoopCountLabel = LoopGrabTab:CreateLabel("SetOwner: 0", 4483362458)
+local LoopTargetLabel = LoopGrabTab:CreateLabel("현재 대상: 없음", 4483362458)
+local LoopCountLabel = LoopGrabTab:CreateLabel("SetOwner: 0회", 4483362458)
 
 spawn(function()
     while task.wait(0.2) do
         if LoopGrabActive and LoopGrabTarget then
-            LoopStatusLabel:Set("🟢 " .. LoopGrabTarget.Name .. " 루프그랩 중")
+            LoopStatusLabel:Set("🟢 실행 중")
+            LoopTargetLabel:Set("대상: " .. LoopGrabTarget.Name)
         else
             LoopStatusLabel:Set("⚫ 대기 중")
+            LoopTargetLabel:Set("대상: 없음")
         end
         LoopCountLabel:Set(string.format("SetOwner: %d회", LoopSetOwnerCount))
     end
@@ -2548,8 +2563,8 @@ end)
 
 LoopGrabTab:CreateSection("📝 설명")
 LoopGrabTab:CreateParagraph({
-    Title = "루프그랩 원리",
-    Content = "• SetOwner만 30번 반복\n• 상대를 잡고 토글 ON\n• 위치 고정 + 오너쉽 유지"
+    Title = "사용법",
+    Content = "1. 상대를 그랩으로 잡고\n2. 토글 ON 하면 자동 시작\n3. OFF 하면 중지"
 })
 
 -- =============================================
