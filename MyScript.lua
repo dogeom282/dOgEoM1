@@ -2355,7 +2355,7 @@ local AntiPaintToggle = SecurityTab:CreateToggle({
 })
 
 -- =============================================
--- [ 킥그랩 탭 (부분 검색) ]
+-- [ 킥그랩 탭 (부분 검색, 콜백 에러 수정) ]
 -- =============================================
 KickGrabTab:CreateSection("🎯 킥그랩 대상 리스트")
 
@@ -2364,16 +2364,18 @@ local KickGrabTargetDropdown = KickGrabTab:CreateDropdown({
     Options = kickGrabTargetList,
     CurrentOption = {"열기"},
     MultipleOptions = true,
+    Flag = "KickGrabDropdown",  -- ← Flag 추가!
     Callback = function(Options)
         kickGrabTargetList = Options
     end
 })
 
--- 🔽 부분 검색 추가 버전
+-- 🔽 부분 검색 추가
 KickGrabTab:CreateInput({
     Name = "Add (부분 검색)",
-    PlaceholderText = "닉네임 일부 입력 (예: 홍)",
+    PlaceholderText = "닉네임 일부 입력",
     RemoveTextAfterFocusLost = true,
+    Flag = "KickGrabAddInput",  -- ← Flag 추가!
     Callback = function(Value)
         if not Value or Value == "" then return end
         
@@ -2388,19 +2390,30 @@ KickGrabTab:CreateInput({
         end
         
         -- 중복 체크
+        local isDuplicate = false
         for _, name in ipairs(kickGrabTargetList) do
             if name == target.Name then
-                Rayfield:Notify({
-                    Title = "⚠️ 중복",
-                    Content = target.Name .. " 이미 있음",
-                    Duration = 2
-                })
-                return
+                isDuplicate = true
+                break
             end
         end
         
+        if isDuplicate then
+            Rayfield:Notify({
+                Title = "⚠️ 중복",
+                Content = target.Name .. " 이미 있음",
+                Duration = 2
+            })
+            return
+        end
+        
         table.insert(kickGrabTargetList, target.Name)
-        KickGrabTargetDropdown:Refresh(kickGrabTargetList, true)
+        
+        -- 안전하게 드롭다운 리프레시
+        pcall(function()
+            KickGrabTargetDropdown:Refresh(kickGrabTargetList, true)
+        end)
+        
         Rayfield:Notify({
             Title = "✅ 추가됨",
             Content = target.Name,
@@ -2409,11 +2422,12 @@ KickGrabTab:CreateInput({
     end
 })
 
--- 🔽 부분 검색 제거 버전
+-- 🔽 부분 검색 제거
 KickGrabTab:CreateInput({
-    Name = "Remove",
-    PlaceholderText = "닉네임 입력",
+    Name = "Remove (부분 검색)",
+    PlaceholderText = "닉네임 일부 입력",
     RemoveTextAfterFocusLost = true,
+    Flag = "KickGrabRemoveInput",  -- ← Flag 추가!
     Callback = function(Value)
         if not Value or Value == "" then return end
         
@@ -2431,7 +2445,12 @@ KickGrabTab:CreateInput({
         
         if foundIndex then
             table.remove(kickGrabTargetList, foundIndex)
-            KickGrabTargetDropdown:Refresh(kickGrabTargetList, true)
+            
+            -- 안전하게 드롭다운 리프레시
+            pcall(function()
+                KickGrabTargetDropdown:Refresh(kickGrabTargetList, true)
+            end)
+            
             Rayfield:Notify({
                 Title = "✅ 제거됨",
                 Content = foundName,
@@ -2440,13 +2459,29 @@ KickGrabTab:CreateInput({
         else
             Rayfield:Notify({
                 Title = "❌ 오류",
-                Content = "리스트에 없음",
+                Content = "리스트에 없는 이름",
                 Duration = 2
             })
         end
     end
 })
 
+-- 🔽 리스트 전체 삭제 버튼
+KickGrabTab:CreateButton({
+    Name = "🗑️ 리스트 비우기",
+    Callback = function()
+        kickGrabTargetList = {}
+        pcall(function()
+            KickGrabTargetDropdown:Refresh(kickGrabTargetList, true)
+        end)
+        Rayfield:Notify({
+            Title = "✅ 초기화",
+            Content = "리스트 비움",
+            Duration = 2
+        })
+    end
+        
+})
 KickGrabTab:CreateSection("⚙️ 모드 설정")
 
 local ModeDropdown = KickGrabTab:CreateDropdown({
