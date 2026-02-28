@@ -621,6 +621,14 @@ local KickGrabState = {
 local kickGrabTargetList = {}
 
 -- =============================================
+-- [ 루프그랩 관련 변수 ]
+-- =============================================
+local LoopGrabActive = false
+local LoopGrabThread = nil
+local LoopGrabTarget = nil
+local LoopSetOwnerCount = 0
+
+-- =============================================
 -- [ 킥그랩 유틸 함수 ]
 -- =============================================
 local function GetPallet()
@@ -758,6 +766,117 @@ local function ExecuteKickGrabLoop()
             currentTargetIndex = currentTargetIndex + 1
         end
         RunService.Heartbeat:Wait()
+    end
+end
+
+-- =============================================
+-- [ 루프그랩 함수 (SetOwner만 반복) ]
+-- =============================================
+local function getGrabbedTarget()
+    local myChar = plr.Character
+    if not myChar then return nil end
+    
+    local grabParts = workspace:FindFirstChild("GrabParts")
+    if not grabParts then return nil end
+    
+    for _, grabPart in ipairs(grabParts:GetChildren()) do
+        if grabPart.Name == "GrabPart" then
+            local weld = grabPart:FindFirstChildOfClass("WeldConstraint")
+            if weld and weld.Part1 then
+                local targetPart = weld.Part1
+                for _, player in ipairs(Players:GetPlayers()) do
+                    if player ~= plr and player.Character then
+                        if targetPart:IsDescendantOf(player.Character) then
+                            return player
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return nil
+end
+
+local function startLoopGrab()
+    local target = getGrabbedTarget()
+    
+    if not target then
+        Rayfield:Notify({
+            Title = "❌ 오류",
+            Content = "잡고 있는 상대가 없음",
+            Duration = 2
+        })
+        return false
+    end
+    
+    LoopGrabTarget = target
+    LoopGrabActive = true
+    
+    Rayfield:Notify({
+        Title = "🔄 루프그랩 시작",
+        Content = "대상: " .. target.Name,
+        Duration = 2
+    })
+    
+    LoopGrabThread = task.spawn(function()
+        while LoopGrabActive do
+            if not LoopGrabTarget or not LoopGrabTarget.Character then
+                break
+            end
+            
+            local targetChar = LoopGrabTarget.Character
+            local targetHrp = targetChar:FindFirstChild("HumanoidRootPart") or targetChar:FindFirstChild("Torso")
+            local myChar = plr.Character
+            
+            if targetHrp and myChar and SetNetworkOwner then
+                local myHrp = myChar:FindFirstChild("HumanoidRootPart")
+                local cam = workspace.CurrentCamera
+                
+                if myHrp and cam then
+                    local detentionPos = cam.CFrame * CFrame.new(0, 0, -19)
+                    
+                    -- SetOwner만 30번 반복
+                    for i = 1, 30 do
+                        pcall(function()
+                            SetNetworkOwner:FireServer(targetHrp, detentionPos)
+                        end)
+                        LoopSetOwnerCount = LoopSetOwnerCount + 1
+                    end
+                    
+                    -- 위치 고정
+                    targetHrp.CFrame = detentionPos
+                    targetHrp.AssemblyLinearVelocity = Vector3.zero
+                end
+            end
+            
+            RunService.RenderStepped:Wait()
+        end
+        
+        if LoopGrabActive then
+            LoopGrabActive = false
+            Rayfield:Notify({
+                Title = "🔄 루프그랩 종료",
+                Content = "대상 사라짐",
+                Duration = 2
+            })
+        end
+    end)
+    
+    return true
+end
+
+local function stopLoopGrab()
+    if LoopGrabActive then
+        LoopGrabActive = false
+        if LoopGrabThread then
+            task.cancel(LoopGrabThread)
+            LoopGrabThread = nil
+        end
+        Rayfield:Notify({
+            Title = "🔄 루프그랩 중지",
+            Content = string.format("SetOwner: %d회", LoopSetOwnerCount),
+            Duration = 2
+        })
     end
 end
 
@@ -1846,6 +1965,8 @@ local AuraTab = Window:CreateTab("아우라", 4483362458)
 local TargetTab = Window:CreateTab("킬 플레이어 정하기", 4483362458)
 local NotifyTab = Window:CreateTab("🔔 알림", 4483362458)
 local KickGrabTab = Window:CreateTab("👢 킥그랩", 4483362458)
+-- 🔽 여기에 루프그랩 탭 추가!
+local LoopGrabTab = Window:CreateTab("🔄 루프그랩", 4483362458)
 local KillGrabTab = Window:CreateTab("💀 킬그랩", 4483362458)
 local SettingsTab = Window:CreateTab("설정", 4483362458)
 
