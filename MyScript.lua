@@ -1950,10 +1950,6 @@ local KickGrabTab = Window:CreateTab("👢 킥그랩", 4483362458)
 local LoopGrabTab = Window:CreateTab("🔄 루프그랩", 4483362458)
 local KillGrabTab = Window:CreateTab("💀 킬그랩", 4483362458)
 local SettingsTab = Window:CreateTab("설정", 4483362458)
-
--- =============================================
--- [ 집 텔레포트 탭 생성 ]
--- =============================================
 local HouseTeleportTab = Window:CreateTab("🏠 집 텔레포트", 4483362458)
 
 -- =============================================
