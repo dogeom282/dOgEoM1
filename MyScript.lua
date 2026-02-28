@@ -2526,7 +2526,7 @@ local SnowBallToggle = KickGrabTab:CreateToggle({
 })
 
 -- =============================================
--- [ 루프그랩 탭 ]
+-- [ 루프그랩 탭 (수정된 버전) ]
 -- =============================================
 LoopGrabTab:CreateSection("🎮 제어")
 
@@ -2535,24 +2535,95 @@ local LoopToggleButton = LoopGrabTab:CreateToggle({
     CurrentValue = false,
     Callback = function(Value)
         if Value then
-            local target = getGrabbedTarget()
-            if target then
-                startLoopGrab(target)
+            -- 켜기 로직
+            if getgenv().LoopGrabActive then
                 Rayfield:Notify({
-                    Title = "🔄 루프그랩",
-                    Content = target.Name .. " 시작",
-                    Duration = 2
-                })
-            else
-                Rayfield:Notify({
-                    Title = "❌ 오류",
-                    Content = "잡은 상대 없음",
-                    Duration = 2
+                    Title = "Loop Grab",
+                    Content = "이미 켜져있습니다!",
+                    Duration = 3
                 })
                 LoopToggleButton:Set(false)
+                return
             end
+
+            getgenv().LoopGrabActive = true
+            Rayfield:Notify({
+                Title = "Loop Grab",
+                Content = "Loop Grab이 켜졌습니다.",
+                Duration = 3
+            })
+
+            local Players = game:GetService("Players")
+            local ReplicatedStorage = game:GetService("ReplicatedStorage")
+            local plr = Players.LocalPlayer
+            local SetNetworkOwner = ReplicatedStorage:WaitForChild("GrabEvents"):WaitForChild("SetNetworkOwner")
+
+            task.spawn(function()
+                while getgenv().LoopGrabActive do
+                    local grabParts = workspace:FindFirstChild("GrabParts")
+                    if not grabParts then
+                        task.wait()
+                        continue
+                    end
+
+                    local gp = grabParts:FindFirstChild("GrabPart")
+                    local weld = gp and gp:FindFirstChildOfClass("WeldConstraint")
+                    local part1 = weld and weld.Part1
+
+                    if part1 then
+                        local ownerPlayer = nil
+                        for _, pl in ipairs(Players:GetPlayers()) do
+                            if pl.Character and part1:IsDescendantOf(pl.Character) then
+                                ownerPlayer = pl
+                                break
+                            end
+                        end
+
+                        while getgenv().LoopGrabActive and workspace:FindFirstChild("GrabParts") do
+                            if ownerPlayer then
+                                local tgtTorso = ownerPlayer.Character and ownerPlayer.Character:FindFirstChild("HumanoidRootPart") 
+                                local tgtHead = ownerPlayer.Character and ownerPlayer.Character:FindFirstChild("Head")
+                                local myTorso = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") 
+
+                                if tgtTorso and myTorso and tgtHead then
+                                    pcall(function()
+                                        SetNetworkOwner:FireServer(tgtTorso, CFrame.lookAt(myTorso.Position, tgtTorso.Position))
+                                    end)
+                                end
+                            else
+                                if part1.Parent then
+                                    local myTorso = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+                                    if myTorso then
+                                        pcall(function()
+                                            SetNetworkOwner:FireServer(part1, CFrame.lookAt(myTorso.Position, part1.Position))
+                                        end)
+                                    end
+                                end
+                            end
+                            task.wait()
+                        end
+                    end
+                    task.wait()
+                end
+            end)
+
         else
-            stopLoopGrab()
+            -- 끄기 로직
+            if not getgenv().LoopGrabActive then
+                Rayfield:Notify({
+                    Title = "Loop Grab",
+                    Content = "이미 꺼져있습니다!",
+                    Duration = 3
+                })
+                return
+            end
+
+            getgenv().LoopGrabActive = false
+            Rayfield:Notify({
+                Title = "Loop Grab",
+                Content = "Loop Grab이 꺼졌습니다.",
+                Duration = 3
+            })
         end
     end
 })
@@ -2560,8 +2631,21 @@ local LoopToggleButton = LoopGrabTab:CreateToggle({
 LoopGrabTab:CreateButton({
     Name = "⏹️ 강제 중지",
     Callback = function()
-        stopLoopGrab()
-        LoopToggleButton:Set(false)
+        if getgenv().LoopGrabActive then
+            getgenv().LoopGrabActive = false
+            Rayfield:Notify({
+                Title = "Loop Grab",
+                Content = "강제로 중지되었습니다.",
+                Duration = 3
+            })
+            LoopToggleButton:Set(false)
+        else
+            Rayfield:Notify({
+                Title = "Loop Grab",
+                Content = "이미 꺼져있습니다.",
+                Duration = 3
+            })
+        end
     end
 })
 
@@ -2569,25 +2653,43 @@ LoopGrabTab:CreateSection("📊 상태")
 
 local LoopStatusLabel = LoopGrabTab:CreateLabel("대기 중...", 4483362458)
 local LoopTargetLabel = LoopGrabTab:CreateLabel("현재 대상: 없음", 4483362458)
-local LoopCountLabel = LoopGrabTab:CreateLabel("SetOwner: 0회", 4483362458)
 
 spawn(function()
     while task.wait(0.2) do
-        if LoopGrabActive and LoopGrabTarget then
+        if getgenv().LoopGrabActive then
             LoopStatusLabel:Set("🟢 실행 중")
-            LoopTargetLabel:Set("대상: " .. LoopGrabTarget.Name)
+            
+            -- 현재 대상 찾아서 표시
+            local grabParts = workspace:FindFirstChild("GrabParts")
+            if grabParts then
+                local gp = grabParts:FindFirstChild("GrabPart")
+                local weld = gp and gp:FindFirstChildOfClass("WeldConstraint")
+                local part1 = weld and weld.Part1
+                
+                if part1 then
+                    for _, pl in ipairs(game.Players:GetPlayers()) do
+                        if pl.Character and part1:IsDescendantOf(pl.Character) then
+                            LoopTargetLabel:Set("대상: " .. pl.Name)
+                            break
+                        end
+                    end
+                else
+                    LoopTargetLabel:Set("대상: 없음")
+                end
+            else
+                LoopTargetLabel:Set("대상: 없음")
+            end
         else
             LoopStatusLabel:Set("⚫ 대기 중")
             LoopTargetLabel:Set("대상: 없음")
         end
-        LoopCountLabel:Set(string.format("SetOwner: %d회", LoopSetOwnerCount))
     end
 end)
 
 LoopGrabTab:CreateSection("📝 설명")
 LoopGrabTab:CreateParagraph({
     Title = "사용법",
-    Content = "1. 상대를 그랩으로 잡고\n2. 토글 ON 하면 자동 시작\n3. OFF 하면 중지"
+    Content = "토글 ON 하면 자동으로 SetNetworkOwner를 반복 실행합니다."
 })
 
 -- =============================================
