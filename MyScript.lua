@@ -892,111 +892,114 @@ local function getClosestPlayer(targetPart)
 end
 
 -- =============================================
--- [ 원본 루프그랩 함수 ]
+-- [ 루프그랩 함수 (SetOwner만 반복) ]
 -- =============================================
-local AntiStruggleGrabT = false
-local antiStruggleThread = nil
-
-local function AntiStruggleGrabF()
-    if antiStruggleThread then
-        task.cancel(antiStruggleThread)
-        antiStruggleThread = nil
-    end
-
-    if not AntiStruggleGrabT then return end
-
-    antiStruggleThread = task.spawn(function()
-        while AntiStruggleGrabT do
-            local grabParts = workspace:FindFirstChild("GrabParts")
-            if not grabParts then
-                task.wait()
-                continue
-            end
-
-            local gp = grabParts:FindFirstChild("GrabPart")
-            local weld = gp and gp:FindFirstChildOfClass("WeldConstraint")
-            local part1 = weld and weld.Part1
-
-            if part1 then
-                local ownerPlayer = nil
-                for _, pl in ipairs(Players:GetPlayers()) do
-                    if pl.Character and part1:IsDescendantOf(pl.Character) then
-                        ownerPlayer = pl
-                        break
-                    end
-                end
-
-                while AntiStruggleGrabT and workspace:FindFirstChild("GrabParts") do
-                    if ownerPlayer then
-                        local tgtTorso = ownerPlayer.Character and ownerPlayer.Character:FindFirstChild("HumanoidRootPart")
-                        local myTorso = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
-
-                        if tgtTorso and myTorso then
-                            pcall(function()
-                                SetNetworkOwner:FireServer(tgtTorso, CFrame.lookAt(myTorso.Position, tgtTorso.Position))
-                            end)
-                        end
-                    else
-                        if part1 and part1.Parent then
-                            local myTorso = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
-                            if myTorso then
-                                pcall(function()
-                                    SetNetworkOwner:FireServer(part1, CFrame.lookAt(myTorso.Position, part1.Position))
-                                end)
-                            end
+local function getGrabbedTarget()
+    local myChar = plr.Character
+    if not myChar then return nil end
+    
+    local grabParts = workspace:FindFirstChild("GrabParts")
+    if not grabParts then return nil end
+    
+    for _, grabPart in ipairs(grabParts:GetChildren()) do
+        if grabPart.Name == "GrabPart" then
+            local weld = grabPart:FindFirstChildOfClass("WeldConstraint")
+            if weld and weld.Part1 then
+                local targetPart = weld.Part1
+                for _, player in ipairs(Players:GetPlayers()) do
+                    if player ~= plr and player.Character then
+                        if targetPart:IsDescendantOf(player.Character) then
+                            return player
                         end
                     end
-                    task.wait()
                 end
             end
-            task.wait()
         end
-    end)
+    end
+    return nil
 end
 
--- =============================================
--- [ 초고속 안티그랩 함수 ]
--- =============================================
-local antiGrabConn = nil
-local isAntiGrabEnabled = false
-
-local function AntiGrabF(enable)
-    if antiGrabConn then
-        antiGrabConn:Disconnect()
-        antiGrabConn = nil
+local function startLoopGrab()
+    local target = getGrabbedTarget()
+    
+    if not target then
+        Rayfield:Notify({
+            Title = "❌ 오류",
+            Content = "잡고 있는 상대가 없음",
+            Duration = 2
+        })
+        return false
     end
-
-    if not enable then return end
-
-    antiGrabConn = RunService.RenderStepped:Connect(function()
-        local char = plr.Character
-        if not char then return end
-
-        local isHeld = plr:FindFirstChild("IsHeld")
-        if not isHeld then return end
-
-        local head = char:FindFirstChild("Head")
-        local POR = head and head:FindFirstChild("PartOwner")
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-
-        if isHeld.Value == true or (POR and POR.Value ~= "") then
-            pcall(function() Struggle:FireServer() end)
+    
+    LoopGrabTarget = target
+    LoopGrabActive = true
+    
+    Rayfield:Notify({
+        Title = "🔄 루프그랩 시작",
+        Content = "대상: " .. target.Name,
+        Duration = 2
+    })
+    
+    LoopGrabThread = task.spawn(function()
+        while LoopGrabActive do
+            if not LoopGrabTarget or not LoopGrabTarget.Character then
+                break
+            end
             
-            local grabParts = Workspace:FindFirstChild("GrabParts")
-            if grabParts then
-                for _, part in ipairs(grabParts:GetChildren()) do
-                    if part.Name == "GrabPart" then
-                        local weld = part:FindFirstChildOfClass("WeldConstraint")
-                        if weld and weld.Part1 and weld.Part1:IsDescendantOf(char) then
-                            pcall(function() DestroyGrabLine:FireServer(weld.Part1) end)
-                            if hrp then pcall(function() SetNetworkOwner:FireServer(hrp) end) end
-                            break
-                        end
+            local targetChar = LoopGrabTarget.Character
+            local targetHrp = targetChar:FindFirstChild("HumanoidRootPart") or targetChar:FindFirstChild("Torso")
+            local myChar = plr.Character
+            
+            if targetHrp and myChar and SetNetworkOwner then
+                local myHrp = myChar:FindFirstChild("HumanoidRootPart")
+                local cam = workspace.CurrentCamera
+                
+                if myHrp and cam then
+                    local detentionPos = cam.CFrame * CFrame.new(0, 0, -19)
+                    
+                    -- SetOwner만 30번 반복
+                    for i = 1, 30 do
+                        pcall(function()
+                            SetNetworkOwner:FireServer(targetHrp, detentionPos)
+                        end)
+                        LoopSetOwnerCount = LoopSetOwnerCount + 1
                     end
+                    
+                    -- 위치 고정
+                    targetHrp.CFrame = detentionPos
+                    targetHrp.AssemblyLinearVelocity = Vector3.zero
                 end
             end
+            
+            RunService.RenderStepped:Wait()
+        end
+        
+        if LoopGrabActive then
+            LoopGrabActive = false
+            Rayfield:Notify({
+                Title = "🔄 루프그랩 종료",
+                Content = "대상 사라짐",
+                Duration = 2
+            })
         end
     end)
+    
+    return true
+end
+
+local function stopLoopGrab()
+    if LoopGrabActive then
+        LoopGrabActive = false
+        if LoopGrabThread then
+            task.cancel(LoopGrabThread)
+            LoopGrabThread = nil
+        end
+        Rayfield:Notify({
+            Title = "🔄 루프그랩 중지",
+            Content = string.format("SetOwner: %d회", LoopSetOwnerCount),
+            Duration = 2
+        })
+    end
 end
 
 -- =============================================
