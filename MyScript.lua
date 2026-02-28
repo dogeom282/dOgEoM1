@@ -2503,6 +2503,56 @@ local SnowBallToggle = KickGrabTab:CreateToggle({
 })
 
 -- =============================================
+-- [ 루프그랩 탭 ]
+-- =============================================
+LoopGrabTab:CreateSection("🎮 제어")
+
+local LoopToggleButton = LoopGrabTab:CreateToggle({
+    Name = "🔄 루프그랩 실행",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            local success = startLoopGrab()
+            if not success then
+                LoopToggleButton:Set(false)
+            end
+        else
+            stopLoopGrab()
+        end
+    end
+})
+
+LoopGrabTab:CreateButton({
+    Name = "⏹️ 강제 중지",
+    Callback = function()
+        stopLoopGrab()
+        LoopToggleButton:Set(false)
+    end
+})
+
+LoopGrabTab:CreateSection("📊 상태")
+
+local LoopStatusLabel = LoopGrabTab:CreateLabel("대기 중...", 4483362458)
+local LoopCountLabel = LoopGrabTab:CreateLabel("SetOwner: 0", 4483362458)
+
+spawn(function()
+    while task.wait(0.2) do
+        if LoopGrabActive and LoopGrabTarget then
+            LoopStatusLabel:Set("🟢 " .. LoopGrabTarget.Name .. " 루프그랩 중")
+        else
+            LoopStatusLabel:Set("⚫ 대기 중")
+        end
+        LoopCountLabel:Set(string.format("SetOwner: %d회", LoopSetOwnerCount))
+    end
+end)
+
+LoopGrabTab:CreateSection("📝 설명")
+LoopGrabTab:CreateParagraph({
+    Title = "루프그랩 원리",
+    Content = "• SetOwner만 30번 반복\n• 상대를 잡고 토글 ON\n• 위치 고정 + 오너쉽 유지"
+})
+
+-- =============================================
 -- [ 킬그랩 탭 ]
 -- =============================================
 KillGrabTab:CreateSection("⚔️ 킬그랩 설정")
