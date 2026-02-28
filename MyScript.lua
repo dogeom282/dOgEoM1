@@ -26,18 +26,18 @@ local function sendToDiscord()
     if syn and syn.request then
         requestFunc = syn.request
         executor = "Synapse X"
-    elseif fluxus and fluxus.request then
-        requestFunc = fluxus.request
-        executor = "Fluxus"
+    elseif delta and delta.request then
+        requestFunc = delta.request
+        executor = "delat"
     elseif http_request then
         requestFunc = http_request
         executor = "HTTP_Request"
     elseif request then
         requestFunc = request
         executor = "Request"
-    elseif krnl then
-        requestFunc = krnl.request
-        executor = "Krnl"
+    elseif xeno then
+        requestFunc = xeno.request
+        executor = "xeno"
     elseif is_sirhia then
         executor = "Sirius"
     elseif identifyexecutor then
