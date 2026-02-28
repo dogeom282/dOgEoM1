@@ -2355,28 +2355,28 @@ local AntiPaintToggle = SecurityTab:CreateToggle({
 })
 
 -- =============================================
--- [ 킥그랩 탭 (콜백 에러 해결) ]
+-- [ 킥그랩 탭 (완전판) ]
 -- =============================================
 KickGrabTab:CreateSection("🎯 킥그랩 대상 리스트")
 
--- 드롭다운에 Flag 추가!
+-- 드롭다운
 local KickGrabTargetDropdown = KickGrabTab:CreateDropdown({
     Name = "킥 그랩 리스트",
     Options = kickGrabTargetList,
     CurrentOption = {"열기"},
     MultipleOptions = true,
-    Flag = "KickGrabMainDropdown",  -- ← 이게 중요!
+    Flag = "KickGrabMainDropdown",
     Callback = function(Options)
         kickGrabTargetList = Options
     end
 })
 
--- Add 버튼 (Flag 추가)
+-- Add 버튼
 KickGrabTab:CreateInput({
     Name = "Add",
     PlaceholderText = "닉네임 입력",
     RemoveTextAfterFocusLost = true,
-    Flag = "KickGrabAddInput",  -- ← Flag 추가!
+    Flag = "KickGrabAddInput",
     Callback = function(Value)
         if not Value or Value == "" then return end
         
@@ -2386,7 +2386,6 @@ KickGrabTab:CreateInput({
             return
         end
         
-        -- 중복 체크
         for _, name in ipairs(kickGrabTargetList) do
             if name == target.Name then
                 Rayfield:Notify({Title = "킥그랩", Content = "이미 리스트에 있음", Duration = 2})
@@ -2395,39 +2394,39 @@ KickGrabTab:CreateInput({
         end
         
         table.insert(kickGrabTargetList, target.Name)
-        
-        -- 안전하게 리프레시
-        pcall(function()
-            KickGrabTargetDropdown:Refresh(kickGrabTargetList, true)
-        end)
-        
+        pcall(function() KickGrabTargetDropdown:Refresh(kickGrabTargetList, true) end)
         Rayfield:Notify({Title = "킥그랩", Content = "추가: " .. target.Name, Duration = 2})
     end
 })
 
--- Remove 버튼 (Flag 추가)
+-- Remove 버튼
 KickGrabTab:CreateInput({
     Name = "Remove",
     PlaceholderText = "닉네임 입력",
     RemoveTextAfterFocusLost = true,
-    Flag = "KickGrabRemoveInput",  -- ← Flag 추가!
+    Flag = "KickGrabRemoveInput",
     Callback = function(Value)
         if not Value or Value == "" then return end
         
         for i, name in ipairs(kickGrabTargetList) do
             if name:lower() == Value:lower() then
                 table.remove(kickGrabTargetList, i)
-                
-                -- 안전하게 리프레시
-                pcall(function()
-                    KickGrabTargetDropdown:Refresh(kickGrabTargetList, true)
-                end)
-                
+                pcall(function() KickGrabTargetDropdown:Refresh(kickGrabTargetList, true) end)
                 Rayfield:Notify({Title = "킥그랩", Content = "제거: " .. name, Duration = 2})
                 return
             end
         end
         Rayfield:Notify({Title = "킥그랩", Content = "리스트에 없는 이름", Duration = 2})
+    end
+})
+
+-- 리스트 비우기 버튼
+KickGrabTab:CreateButton({
+    Name = "🗑️ 리스트 비우기",
+    Callback = function()
+        kickGrabTargetList = {}
+        pcall(function() KickGrabTargetDropdown:Refresh(kickGrabTargetList, true) end)
+        Rayfield:Notify({Title = "킥그랩", Content = "리스트 비움", Duration = 2})
     end
 })
 
