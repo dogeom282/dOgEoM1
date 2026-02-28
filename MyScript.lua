@@ -1936,6 +1936,30 @@ local HouseTeleportTap = Window:CreateTab("🏠 집 텔레포트", 4483362458)
 local SettingsTab = Window:CreateTab("설정", 4483362458)
 
 -- =============================================
+-- [ 텔레포트 함수 ]
+-- =============================================
+local function teleportToPosition(name, pos)
+    local char = plr.Character
+    if not char then 
+        Rayfield:Notify({Title = "오류", Content = "캐릭터 없음", Duration = 2})
+        return 
+    end
+    
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then 
+        Rayfield:Notify({Title = "오류", Content = "HumanoidRootPart 없음", Duration = 2})
+        return 
+    end
+    
+    hrp.CFrame = CFrame.new(pos)
+    Rayfield:Notify({
+        Title = "✅ 텔레포트",
+        Content = name,
+        Duration = 1
+    })
+end
+
+-- =============================================
 -- [ 메인 탭 - 안티 그랩 (pcall 추가) ]
 -- =============================================
 MainTab:CreateSection("🛡️ 기본 방어")
