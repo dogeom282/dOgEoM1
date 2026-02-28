@@ -2813,6 +2813,92 @@ TargetTab:CreateSection("📋 선택된 플레이어")
 local SelectedLabel = TargetTab:CreateLabel("선택됨: 0명", 4483362458)
 spawn(function() while task.wait(0.5) do SelectedLabel:Set("선택됨: " .. #targetList .. "명") end end)
 
+TargetTab:CreateSection("🏠 집 텔레포트")
+
+-- 텔레포트 함수
+local function tpTo(name, x, y, z)
+    local char = plr.Character
+    if not char then 
+        Rayfield:Notify({Title = "오류", Content = "캐릭터 없음", Duration = 2})
+        return 
+    end
+    
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then 
+        Rayfield:Notify({Title = "오류", Content = "HumanoidRootPart 없음", Duration = 2})
+        return 
+    end
+    
+    hrp.CFrame = CFrame.new(x, y, z)
+    Rayfield:Notify({
+        Title = "✅ 텔레포트",
+        Content = name,
+        Duration = 1
+    })
+end
+
+-- 집 목록
+local houses = {
+    {"🔵 파란색 집", 502.693054, 83.3367615, -340.893524},
+    {"🟢 초록색 집", -352, 98, 353},
+    {"🔴 빨간색 집", 551, 123, -73},
+    {"🟣 보라색 집", 249, -7, 461},
+    {"🌸 분홍색 집", -484, -7, -165},
+    {"🏮 중국집", 513, 83, -341},
+}
+
+for i, house in ipairs(houses) do
+    TargetTab:CreateButton({
+        Name = house[1],
+        Callback = function()
+            tpTo(house[1], house[2], house[3], house[4])
+        end
+    })
+end
+
+-- 기타 장소
+TargetTab:CreateSection("🗺️ 기타 장소")
+
+local places = {
+    {"⛰️ 스폰산", 494, 163, 175},
+    {"❄️ 설산", -394, 230, 509},
+    {"🏡 헛간", -156, 59, -291},
+    {"⚠️ 위험구역", 125, -7, 241},
+    {"☁️ 하늘섬", 63, 346, 309},
+    {"🕳️ 큰동굴", -240, 29, 554},
+    {"🕳️ 작은동굴", -84, 14, -310},
+    {"🚂 열차동굴", 602, 45, -175},
+    {"⛏️ 광산", -308, -7, 506},
+    {"📍 스폰", 0, -7, 0},
+}
+
+for i, place in ipairs(places) do
+    TargetTab:CreateButton({
+        Name = place[1],
+        Callback = function()
+            tpTo(place[1], place[2], place[3], place[4])
+        end
+    })
+end
+
+-- 현재 위치 확인
+TargetTab:CreateSection("📍 현재 위치")
+
+TargetTab:CreateButton({
+    Name = "🔄 내 위치 확인",
+    Callback = function()
+        local char = plr.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            local pos = char.HumanoidRootPart.Position
+            Rayfield:Notify({
+                Title = "📌 현재 위치",
+                Content = string.format("X: %.1f, Y: %.1f, Z: %.1f", pos.X, pos.Y, pos.Z),
+                Duration = 3
+            })
+        end
+    end
+})
+
 -- =============================================
 -- [ 알림 탭 ]
 -- =============================================
