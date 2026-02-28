@@ -2866,12 +2866,12 @@ Rayfield:Notify({
 })
 
 -- =============================================
--- [ 집 텔레포트 탭 UI (강제 로드) ]
+-- [ 집 텔레포트 탭 UI (강제 표시) ]
 -- =============================================
--- 탭이 존재하는지 확인
+-- 탭이 있는지 확인
 if HouseTeleportTab then
-    -- 섹션 강제 생성
-    local section1 = HouseTeleportTab:CreateSection("🏡 집 텔레포트")
+    -- 섹션 1: 집
+    HouseTeleportTab:CreateSection("🏡 집 텔레포트")
     
     -- 집 목록
     local houses = {
@@ -2899,14 +2899,10 @@ if HouseTeleportTab then
                 end
             end
         })
-        -- 버튼이 제대로 생성됐는지 확인
-        if btn then
-            print("✅ 버튼 생성됨:", house[1])
-        end
     end
     
-    -- 기타 장소 섹션
-    local section2 = HouseTeleportTab:CreateSection("🗺️ 기타 장소")
+    -- 섹션 2: 기타 장소
+    HouseTeleportTab:CreateSection("🗺️ 기타 장소")
     
     local otherPlaces = {
         {"⛰️ 스폰산", Vector3.new(494, 163, 175)},
@@ -2938,8 +2934,8 @@ if HouseTeleportTab then
         })
     end
     
-    -- 테스트 버튼
-    local section3 = HouseTeleportTab:CreateSection("🧪 테스트")
+    -- 섹션 3: 테스트 (확인용)
+    HouseTeleportTab:CreateSection("🧪 테스트")
     
     HouseTeleportTab:CreateButton({
         Name = "📍 현재 위치 출력",
@@ -2958,5 +2954,5 @@ if HouseTeleportTab then
     
     print("✅ 집 텔레포트 탭 로드 완료")
 else
-    print("❌ HouseTeleportTab이 없음!")
+    print("❌ HouseTeleportTab이 없음! 탭 생성 부분 확인 필요")
 end
