@@ -1956,70 +1956,103 @@ local KillGrabTab = Window:CreateTab("💀 킬그랩", 4483362458)
 local SettingsTab = Window:CreateTab("설정", 4483362458)
 
 -- =============================================
--- [ 메인 탭 - 안티 그랩 (콜백 에러 해결) ]
+-- [ 메인 탭 - 안티 그랩 (pcall 추가) ]
 -- =============================================
 MainTab:CreateSection("🛡️ 기본 방어")
 
--- 안티 그랩 토글 (Flag 추가!)
+-- 안티 그랩 토글
 local AntiGrabToggle = MainTab:CreateToggle({
     Name = "⚡ 안티 그랩",
     CurrentValue = false,
-    Flag = "AntiGrabMainToggle",  -- ← Flag 추가!
+    Flag = "AntiGrabMainToggle",
     Callback = function(Value)
-        isAntiGrabEnabled = Value
-        AntiGrabF(Value)
+        -- pcall로 감싸서 에러 방지
+        local success, err = pcall(function()
+            isAntiGrabEnabled = Value
+            if Value then
+                AntiGrabF(Value)
+            else
+                if antiGrabConn then
+                    antiGrabConn:Disconnect()
+                    antiGrabConn = nil
+                end
+            end
+        end)
+        
+        if not success then
+            print("⚠️ 안티 그랩 에러:", err)
+            Rayfield:Notify({
+                Title = "⚠️ 오류",
+                Content = "안티 그랩 기능 오류",
+                Duration = 2
+            })
+        end
     end
 })
 
--- 쓰지마세요 버튼 (Flag 추가!)
+-- 쓰지마세요 버튼
 MainTab:CreateButton({
     Name = "🔓 쓰지마세요",
-    Flag = "ManualReleaseButton",  -- ← Flag 추가!
-    Callback = ManualRelease
+    Flag = "ManualReleaseButton",
+    Callback = function()
+        pcall(function()
+            ManualRelease()
+        end)
+    end
 })
 
--- PCLD 보기 토글 (Flag 추가!)
+-- PCLD 보기 토글
 local PcldViewToggle = MainTab:CreateToggle({
     Name = "👁️ PCLD 보기",
     CurrentValue = false,
-    Flag = "PcldViewToggle",  -- ← Flag 추가!
+    Flag = "PcldViewToggle",
     Callback = function(Value)
-        pcldViewEnabled = Value
-        togglePcldView(Value)
+        pcall(function()
+            pcldViewEnabled = Value
+            togglePcldView(Value)
+        end)
     end
 })
 
--- 베리어 노클립 토글 (Flag 추가!)
+-- 베리어 노클립 토글
 local BarrierNoclipToggle = MainTab:CreateToggle({
     Name = "🧱 베리어 노클립",
     CurrentValue = false,
-    Flag = "BarrierNoclipToggle",  -- ← Flag 추가!
+    Flag = "BarrierNoclipToggle",
     Callback = function(Value)
-        BarrierCanCollideT = Value
-        BarrierCanCollideF()
+        pcall(function()
+            BarrierCanCollideT = Value
+            BarrierCanCollideF()
+        end)
     end
 })
 
--- 집 베리어 부수기 버튼 (Flag 추가!)
+-- 집 베리어 부수기 버튼
 MainTab:CreateButton({
     Name = "💥 집 베리어 부수기",
-    Flag = "PlotBarrierDeleteButton",  -- ← Flag 추가!
-    Callback = PlotBarrierDelete
+    Flag = "PlotBarrierDeleteButton",
+    Callback = function()
+        pcall(function()
+            PlotBarrierDelete()
+        end)
+    end
 })
 
--- 안티 킥 토글 (Flag 추가!)
+-- 안티 킥 토글
 local AntiPCLDToggle = MainTab:CreateToggle({
     Name = "🛡️ 안티 킥",
     CurrentValue = false,
-    Flag = "AntiPCLDToggle",  -- ← Flag 추가!
+    Flag = "AntiPCLDToggle",
     Callback = function(Value)
-        AntiPCLDEnabled = Value
-        if Value then
-            setupAntiPCLD()
-            Rayfield:Notify({Title = "안티킥", Content = "활성화", Duration = 2})
-        else
-            Rayfield:Notify({Title = "안티킥", Content = "비활성화", Duration = 2})
-        end
+        pcall(function()
+            AntiPCLDEnabled = Value
+            if Value then
+                setupAntiPCLD()
+                Rayfield:Notify({Title = "안티킥", Content = "활성화", Duration = 2})
+            else
+                Rayfield:Notify({Title = "안티킥", Content = "비활성화", Duration = 2})
+            end
+        end)
     end
 })
 
