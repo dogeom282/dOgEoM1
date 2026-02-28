@@ -770,97 +770,93 @@ local function ExecuteKickGrabLoop()
 end
 
 -- =============================================
--- [ 루프그랩 함수 (실행 중에도 잡기 가능) ]
+-- [ 수정된 루프그랩 함수 ]
 -- =============================================
-local function getGrabbedTarget()
-    local myChar = plr.Character
-    if not myChar then return nil end
-    
-    local grabParts = workspace:FindFirstChild("GrabParts")
-    if not grabParts then return nil end
-    
-    for _, grabPart in ipairs(grabParts:GetChildren()) do
-        if grabPart.Name == "GrabPart" then
-            local weld = grabPart:FindFirstChildOfClass("WeldConstraint")
-            if weld and weld.Part1 then
-                local targetPart = weld.Part1
-                for _, player in ipairs(Players:GetPlayers()) do
-                    if player ~= plr and player.Character then
-                        if targetPart:IsDescendantOf(player.Character) then
-                            return player
+-- 기존 AntiStruggleGrabF 대신 이 부분을 넣으세요.
+
+local function LoopGrabToggle(Value)
+    if Value then
+        if getgenv().LoopGrabActive then
+            game.StarterGui:SetCore("SendNotification", {
+                Title = "Loop Grab",
+                Text = "이미 켜져있습니다!",
+                Duration = 3
+            })
+            return
+        end
+
+        getgenv().LoopGrabActive = true
+        game.StarterGui:SetCore("SendNotification", {
+            Title = "Loop Grab",
+            Text = "Loop Grab이 켜졌습니다.",
+            Duration = 3
+        })
+
+        task.spawn(function()
+            while getgenv().LoopGrabActive do
+                local grabParts = workspace:FindFirstChild("GrabParts")
+                if not grabParts then
+                    task.wait()
+                    continue
+                end
+
+                local gp = grabParts:FindFirstChild("GrabPart")
+                local weld = gp and gp:FindFirstChildOfClass("WeldConstraint")
+                local part1 = weld and weld.Part1
+
+                if part1 then
+                    local ownerPlayer = nil
+                    for _, pl in ipairs(game.Players:GetPlayers()) do
+                        if pl.Character and part1:IsDescendantOf(pl.Character) then
+                            ownerPlayer = pl
+                            break
                         end
                     end
-                end
-            end
-        end
-    end
-    return nil
-end
 
-local function startLoopGrab()
-    LoopGrabActive = true
-    
-    Rayfield:Notify({
-        Title = "🔄 루프그랩 활성화",
-        Content = "상대를 잡으면 자동 시작",
-        Duration = 2
-    })
-    
-    LoopGrabThread = task.spawn(function()
-        while LoopGrabActive do
-            -- 매 루프마다 현재 잡은 상대 확인
-            local currentTarget = getGrabbedTarget()
-            
-            if currentTarget and currentTarget.Character then
-                LoopGrabTarget = currentTarget
-                
-                local targetChar = currentTarget.Character
-                local targetHrp = targetChar:FindFirstChild("HumanoidRootPart") or targetChar:FindFirstChild("Torso")
-                local myChar = plr.Character
-                
-                if targetHrp and myChar and SetNetworkOwner then
-                    local myHrp = myChar:FindFirstChild("HumanoidRootPart")
-                    local cam = workspace.CurrentCamera
-                    
-                    if myHrp and cam then
-                        local detentionPos = cam.CFrame * CFrame.new(0, 0, -19)
-                        
-                        -- SetOwner만 30번 반복
-                        for i = 1, 30 do
-                            pcall(function()
-                                SetNetworkOwner:FireServer(targetHrp, detentionPos)
-                            end)
-                            LoopSetOwnerCount = LoopSetOwnerCount + 1
+                    while getgenv().LoopGrabActive and workspace:FindFirstChild("GrabParts") do
+                        if ownerPlayer then
+                            local tgtTorso = ownerPlayer.Character and ownerPlayer.Character:FindFirstChild("HumanoidRootPart") 
+                            local tgtHead = ownerPlayer.Character and ownerPlayer.Character:FindFirstChild("Head")
+                            local myTorso = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") 
+
+                            if tgtTorso and myTorso and tgtHead then
+                                pcall(function()
+                                    SetNetworkOwner:FireServer(tgtTorso, CFrame.lookAt(myTorso.Position, tgtTorso.Position))
+                                end)
+                            end
+                        else
+                            if part1.Parent then
+                                local myTorso = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                                if myTorso then
+                                    pcall(function()
+                                        SetNetworkOwner:FireServer(part1, CFrame.lookAt(myTorso.Position, part1.Position))
+                                     [span_2](start_span)pcall(function() SetNetworkOwner:FireServer(part1, CFrame.lookAt(myTorso.Position, part1.Position)) end) -- 기존 리모트 활용[span_2](end_span)
+                                    end)
+                                end
+                            end
                         end
-                        
-                        -- 위치 고정
-                        targetHrp.CFrame = detentionPos
-                        targetHrp.AssemblyLinearVelocity = Vector3.zero
+                        task.wait()
                     end
                 end
-            else
-                LoopGrabTarget = nil
+                task.wait()
             end
-            
-            RunService.RenderStepped:Wait()
+        end)
+    else
+        -- 끄는 로직
+        if not getgenv().LoopGrabActive then
+            game.StarterGui:SetCore("SendNotification", {
+                Title = "Loop Grab",
+                Text = "이미 꺼져있습니다!",
+                Duration = 3
+            })
+            return
         end
-    end)
-    
-    return true
-end
 
-local function stopLoopGrab()
-    if LoopGrabActive then
-        LoopGrabActive = false
-        if LoopGrabThread then
-            task.cancel(LoopGrabThread)
-            LoopGrabThread = nil
-        end
-        LoopGrabTarget = nil
-        Rayfield:Notify({
-            Title = "🔄 루프그랩 중지",
-            Content = string.format("SetOwner: %d회", LoopSetOwnerCount),
-            Duration = 2
+        getgenv().LoopGrabActive = false
+        game.StarterGui:SetCore("SendNotification", {
+            Title = "Loop Grab",
+            Text = "Loop Grab이 꺼졌습니다.",
+            Duration = 3
         })
     end
 end
