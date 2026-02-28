@@ -1936,9 +1936,9 @@ local HouseTeleportTap = Window:CreateTab("🏠 집 텔레포트", 4483362458)
 local SettingsTab = Window:CreateTab("설정", 4483362458)
 
 -- =============================================
--- [ 텔레포트 함수 ]
+-- [ 텔레포트 함수 ]  👈 여기에 추가!
 -- =============================================
-local function teleportToPosition(name, pos)
+local function teleportTo(name, x, y, z)
     local char = plr.Character
     if not char then 
         Rayfield:Notify({Title = "오류", Content = "캐릭터 없음", Duration = 2})
@@ -1951,7 +1951,7 @@ local function teleportToPosition(name, pos)
         return 
     end
     
-    hrp.CFrame = CFrame.new(pos)
+    hrp.CFrame = CFrame.new(x, y, z)
     Rayfield:Notify({
         Title = "✅ 텔레포트",
         Content = name,
@@ -2890,79 +2890,86 @@ Rayfield:Notify({
 })
 
 -- =============================================
--- [ 집 텔레포트 탭 UI (강제 표시) ]
+-- [ 집 텔레포트 탭 ]
 -- =============================================
--- 탭이 있는지 확인
-if HouseTeleportTab then
-    -- 섹션 1: 집
-    HouseTeleportTab:CreateSection("🏡 집 텔레포트")
+-- 탭 생성 (탭 생성 부분에 추가)
+local HouseTeleportTab = Window:CreateTab("🏠 집 텔레포트", 4483362458)
+
+-- 텔레포트 함수 (변수 선언부 아래에 추가)
+local function teleportTo(name, x, y, z)
+    local char = plr.Character
+    if not char then 
+        Rayfield:Notify({Title = "오류", Content = "캐릭터 없음", Duration = 2})
+        return 
+    end
     
-    -- 집 목록
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then 
+        Rayfield:Notify({Title = "오류", Content = "HumanoidRootPart 없음", Duration = 2})
+        return 
+    end
+    
+    hrp.CFrame = CFrame.new(x, y, z)
+    Rayfield:Notify({
+        Title = "✅ 텔레포트",
+        Content = name,
+        Duration = 1
+    })
+end
+
+-- UI 코드 (스크립트 맨 마지막에 추가)
+if HouseTeleportTab then
+    -- 집 섹션
+    HouseTeleportTab:CreateSection("🏡 집 목록")
+    
     local houses = {
-        {"🔵 파란색 집", Vector3.new(502.693054, 83.3367615, -340.893524)},
-        {"🟢 초록색 집", Vector3.new(-352, 98, 353)},
-        {"🔴 빨간색 집", Vector3.new(551, 123, -73)},
-        {"🟣 보라색 집", Vector3.new(249, -7, 461)},
-        {"🌸 분홍색 집", Vector3.new(-484, -7, -165)},
-        {"🏮 중국집", Vector3.new(513, 83, -341)},
+        {"🔵 파란색 집", 502.693054, 83.3367615, -340.893524},
+        {"🟢 초록색 집", -352, 98, 353},
+        {"🔴 빨간색 집", 551, 123, -73},
+        {"🟣 보라색 집", 249, -7, 461},
+        {"🌸 분홍색 집", -484, -7, -165},
+        {"🏮 중국집", 513, 83, -341},
     }
     
-    -- 버튼 생성
     for i, house in ipairs(houses) do
-        local btn = HouseTeleportTab:CreateButton({
+        HouseTeleportTab:CreateButton({
             Name = house[1],
             Callback = function()
-                local char = plr.Character
-                if char and char:FindFirstChild("HumanoidRootPart") then
-                    char.HumanoidRootPart.CFrame = CFrame.new(house[2])
-                    Rayfield:Notify({
-                        Title = "✅ 텔레포트",
-                        Content = house[1],
-                        Duration = 1
-                    })
-                end
+                teleportTo(house[1], house[2], house[3], house[4])
             end
         })
     end
     
-    -- 섹션 2: 기타 장소
+    -- 기타 장소 섹션
     HouseTeleportTab:CreateSection("🗺️ 기타 장소")
     
-    local otherPlaces = {
-        {"⛰️ 스폰산", Vector3.new(494, 163, 175)},
-        {"❄️ 설산", Vector3.new(-394, 230, 509)},
-        {"🏡 헛간", Vector3.new(-156, 59, -291)},
-        {"⚠️ 위험구역", Vector3.new(125, -7, 241)},
-        {"☁️ 하늘섬", Vector3.new(63, 346, 309)},
-        {"🕳️ 큰동굴", Vector3.new(-240, 29, 554)},
-        {"🕳️ 작은동굴", Vector3.new(-84, 14, -310)},
-        {"🚂 열차동굴", Vector3.new(602, 45, -175)},
-        {"⛏️ 광산", Vector3.new(-308, -7, 506)},
-        {"📍 스폰", Vector3.new(0, -7, 0)},
+    local places = {
+        {"⛰️ 스폰산", 494, 163, 175},
+        {"❄️ 설산", -394, 230, 509},
+        {"🏡 헛간", -156, 59, -291},
+        {"⚠️ 위험구역", 125, -7, 241},
+        {"☁️ 하늘섬", 63, 346, 309},
+        {"🕳️ 큰동굴", -240, 29, 554},
+        {"🕳️ 작은동굴", -84, 14, -310},
+        {"🚂 열차동굴", 602, 45, -175},
+        {"⛏️ 광산", -308, -7, 506},
+        {"📍 스폰", 0, -7, 0},
     }
     
-    for i, place in ipairs(otherPlaces) do
-        local btn = HouseTeleportTab:CreateButton({
+    for i, place in ipairs(places) do
+        HouseTeleportTab:CreateButton({
             Name = place[1],
             Callback = function()
-                local char = plr.Character
-                if char and char:FindFirstChild("HumanoidRootPart") then
-                    char.HumanoidRootPart.CFrame = CFrame.new(place[2])
-                    Rayfield:Notify({
-                        Title = "✅ 텔레포트",
-                        Content = place[1],
-                        Duration = 1
-                    })
-                end
+                teleportTo(place[1], place[2], place[3], place[4])
             end
         })
     end
     
-    -- 섹션 3: 테스트 (확인용)
-    HouseTeleportTab:CreateSection("🧪 테스트")
+    -- 현재 위치 확인
+    HouseTeleportTab:CreateSection("📍 현재 위치")
     
     HouseTeleportTab:CreateButton({
-        Name = "📍 현재 위치 출력",
+        Name = "🔄 내 위치 확인",
         Callback = function()
             local char = plr.Character
             if char and char:FindFirstChild("HumanoidRootPart") then
@@ -2977,6 +2984,4 @@ if HouseTeleportTab then
     })
     
     print("✅ 집 텔레포트 탭 로드 완료")
-else
-    print("❌ HouseTeleportTab이 없음! 탭 생성 부분 확인 필요")
 end
