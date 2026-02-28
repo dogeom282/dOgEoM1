@@ -770,7 +770,7 @@ local function ExecuteKickGrabLoop()
 end
 
 -- =============================================
--- [ 루프그랩 함수 (SetOwner만 반복) ]
+-- [ 루프그랩 함수 (실행 중에도 잡기 가능) ]
 -- =============================================
 local function getGrabbedTarget()
     local myChar = plr.Character
@@ -798,67 +798,51 @@ local function getGrabbedTarget()
 end
 
 local function startLoopGrab()
-    local target = getGrabbedTarget()
-    
-    if not target then
-        Rayfield:Notify({
-            Title = "❌ 오류",
-            Content = "잡고 있는 상대가 없음",
-            Duration = 2
-        })
-        return false
-    end
-    
-    LoopGrabTarget = target
     LoopGrabActive = true
     
     Rayfield:Notify({
-        Title = "🔄 루프그랩 시작",
-        Content = "대상: " .. target.Name,
+        Title = "🔄 루프그랩 활성화",
+        Content = "상대를 잡으면 자동 시작",
         Duration = 2
     })
     
     LoopGrabThread = task.spawn(function()
         while LoopGrabActive do
-            if not LoopGrabTarget or not LoopGrabTarget.Character then
-                break
-            end
+            -- 매 루프마다 현재 잡은 상대 확인
+            local currentTarget = getGrabbedTarget()
             
-            local targetChar = LoopGrabTarget.Character
-            local targetHrp = targetChar:FindFirstChild("HumanoidRootPart") or targetChar:FindFirstChild("Torso")
-            local myChar = plr.Character
-            
-            if targetHrp and myChar and SetNetworkOwner then
-                local myHrp = myChar:FindFirstChild("HumanoidRootPart")
-                local cam = workspace.CurrentCamera
+            if currentTarget and currentTarget.Character then
+                LoopGrabTarget = currentTarget
                 
-                if myHrp and cam then
-                    local detentionPos = cam.CFrame * CFrame.new(0, 0, -19)
+                local targetChar = currentTarget.Character
+                local targetHrp = targetChar:FindFirstChild("HumanoidRootPart") or targetChar:FindFirstChild("Torso")
+                local myChar = plr.Character
+                
+                if targetHrp and myChar and SetNetworkOwner then
+                    local myHrp = myChar:FindFirstChild("HumanoidRootPart")
+                    local cam = workspace.CurrentCamera
                     
-                    -- SetOwner만 30번 반복
-                    for i = 1, 30 do
-                        pcall(function()
-                            SetNetworkOwner:FireServer(targetHrp, detentionPos)
-                        end)
-                        LoopSetOwnerCount = LoopSetOwnerCount + 1
+                    if myHrp and cam then
+                        local detentionPos = cam.CFrame * CFrame.new(0, 0, -19)
+                        
+                        -- SetOwner만 30번 반복
+                        for i = 1, 30 do
+                            pcall(function()
+                                SetNetworkOwner:FireServer(targetHrp, detentionPos)
+                            end)
+                            LoopSetOwnerCount = LoopSetOwnerCount + 1
+                        end
+                        
+                        -- 위치 고정
+                        targetHrp.CFrame = detentionPos
+                        targetHrp.AssemblyLinearVelocity = Vector3.zero
                     end
-                    
-                    -- 위치 고정
-                    targetHrp.CFrame = detentionPos
-                    targetHrp.AssemblyLinearVelocity = Vector3.zero
                 end
+            else
+                LoopGrabTarget = nil
             end
             
             RunService.RenderStepped:Wait()
-        end
-        
-        if LoopGrabActive then
-            LoopGrabActive = false
-            Rayfield:Notify({
-                Title = "🔄 루프그랩 종료",
-                Content = "대상 사라짐",
-                Duration = 2
-            })
         end
     end)
     
@@ -872,6 +856,7 @@ local function stopLoopGrab()
             task.cancel(LoopGrabThread)
             LoopGrabThread = nil
         end
+        LoopGrabTarget = nil
         Rayfield:Notify({
             Title = "🔄 루프그랩 중지",
             Content = string.format("SetOwner: %d회", LoopSetOwnerCount),
