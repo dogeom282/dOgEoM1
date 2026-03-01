@@ -1934,6 +1934,7 @@ local LoopGrabTab = Window:CreateTab("🔄 루프그랩", 4483362458)
 local KillGrabTab = Window:CreateTab("💀 킬그랩", 4483362458)
 local HouseTeleportTap = Window:CreateTab("🏠 집 텔레포트", 4483362458)
 local SettingsTab = Window:CreateTab("설정", 4483362458)
+local GucciTap = Window:CreateTab("집 구찌", 4483362458)
 
 -- =============================================
 -- [ 텔레포트 함수 ]  👈 여기에 추가!
@@ -3164,6 +3165,322 @@ local BlobNotifyToggle = NotifyTab:CreateToggle({
     end
 })
 BlobNotifyToggle:Set(true)
+
+-- =============================================
+-- [ Plot 구찌 (블롭탭에 추가) ]
+-- =============================================
+BlobTab:CreateSection("🏠 집 구찌")
+
+-- 변수
+local PlotGucciT = false
+local plotGucciThread = nil
+local plotSitJumpT = false
+local plotRagdollLoopD = false
+
+-- 내 Plot 번호 찾기
+local function getMyPlotNumber()
+    local plr = game.Players.LocalPlayer
+    local Plots = workspace:FindFirstChild("Plots")
+    if not Plots then return nil end
+    
+    for i = 1, 5 do
+        local plot = Plots:FindFirstChild("Plot" .. i)
+        if plot then
+            local plotSign = plot:FindFirstChild("PlotSign")
+            if plotSign then
+                local owners = plotSign:FindFirstChild("ThisPlotsOwners")
+                if owners then
+                    for _, owner in ipairs(owners:GetChildren()) do
+                        if owner:IsA("StringValue") and owner.Value == plr.Name then
+                            return i
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return nil
+end
+
+-- Plot Item에서 블롭 찾기
+local function findBlobInPlot()
+    local plotNumber = getMyPlotNumber()
+    if not plotNumber then return nil end
+    
+    local plotItems = workspace:FindFirstChild("PlotItems")
+    if not plotItems then return nil end
+    
+    local myPlot = plotItems:FindFirstChild("Plot" .. plotNumber)
+    if not myPlot then return nil end
+    
+    for _, item in ipairs(myPlot:GetChildren()) do
+        if item.Name == "CreatureBlobman" then
+            return item
+        end
+    end
+    return nil
+end
+
+-- 인벤토리에서 블롭 찾기 (백업)
+local function findBlobInInventory()
+    local plr = game.Players.LocalPlayer
+    local inv = workspace:FindFirstChild(plr.Name .. "SpawnedInToys")
+    return inv and inv:FindFirstChild("CreatureBlobman")
+end
+
+-- 블롭 찾기 (Plot 우선)
+local function findBlob()
+    local plotBlob = findBlobInPlot()
+    if plotBlob then
+        return plotBlob
+    end
+    return findBlobInInventory()
+end
+
+-- 블롭 생성 (Plot에 생성)
+local function spawnBlobInPlot()
+    local plr = game.Players.LocalPlayer
+    local char = plr.Character
+    if not char then return nil end
+    
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return nil end
+    
+    local plotNumber = getMyPlotNumber()
+    if not plotNumber then return nil end
+    
+    local SpawnToyRemote = rs and rs:FindFirstChild("MenuToys") and rs.MenuToys:FindFirstChild("SpawnToyRemoteFunction")
+    if not SpawnToyRemote then return nil end
+    
+    local plotItems = workspace:FindFirstChild("PlotItems")
+    local myPlot = plotItems and plotItems:FindFirstChild("Plot" .. plotNumber)
+    
+    if myPlot then
+        local spawnPos = myPlot:FindFirstChild("SpawnLocation") or myPlot:FindFirstChildWhichIsA("BasePart")
+        if spawnPos then
+            pcall(function()
+                SpawnToyRemote:InvokeServer("CreatureBlobman", spawnPos.CFrame * CFrame.new(0, 5, 0), Vector3.new(0, 0, 0))
+            end)
+            
+            local tries = 0
+            repeat
+                task.wait(0.2)
+                local blob = findBlobInPlot()
+                if blob then return blob end
+                tries = tries + 1
+            until tries > 10
+        end
+    end
+    return nil
+end
+
+-- 레그돌 루프
+local function plotRagdollLoop()
+    if plotRagdollLoopD then return end
+    plotRagdollLoopD = true
+
+    while plotSitJumpT do
+        local char = game.Players.LocalPlayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if char and hrp and RagdollRemote then
+            pcall(function()
+                RagdollRemote:FireServer(hrp, 0)
+            end)
+        end
+        task.wait()
+    end
+    plotRagdollLoopD = false
+end
+
+-- 앉기 함수
+local function sitOnBlob(blob)
+    if not blob then return false end
+    
+    local char = game.Players.LocalPlayer.Character
+    if not char then return false end
+    
+    local hum = char:FindFirstChild("Humanoid")
+    if not hum then return false end
+    
+    local seat = blob:FindFirstChild("VehicleSeat") or blob:FindFirstChildWhichIsA("VehicleSeat")
+    if not seat then return false end
+    
+    if seat.Occupant == hum then return true end
+    
+    local success = pcall(function()
+        seat:Sit(hum)
+    end)
+    return success
+end
+
+-- 메인 Plot 구찌 함수
+local function plotGucciLoop()
+    while PlotGucciT do
+        local success = pcall(function()
+            local blob = findBlob()
+            
+            if not blob then
+                blob = spawnBlobInPlot()
+            end
+            
+            if not blob then
+                task.wait(2)
+                return
+            end
+            
+            local char = game.Players.LocalPlayer.Character
+            if not char then
+                task.wait(0.5)
+                return
+            end
+            
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            local hum = char:FindFirstChild("Humanoid")
+            if not hrp or not hum then return end
+            
+            local rag = hum:FindFirstChild("Ragdolled")
+            local held = game.Players.LocalPlayer:FindFirstChild("IsHeld")
+            
+            local originalCF = hrp.CFrame
+            local sat = sitOnBlob(blob)
+            
+            if sat then
+                plotSitJumpT = true
+                task.spawn(plotRagdollLoop)
+                task.wait(0.3)
+                hrp.CFrame = originalCF
+                
+                local startTime = tick()
+                while PlotGucciT and tick() - startTime < 10 do
+                    if hum.Health <= 0 then break end
+                    
+                    local seat = blob:FindFirstChildWhichIsA("VehicleSeat")
+                    if not seat or seat.Occupant ~= hum then break end
+                    
+                    if rag and rag.Value == true and Struggle then
+                        Struggle:FireServer()
+                    end
+                    
+                    if held and held.Value == true and Struggle then
+                        Struggle:FireServer()
+                    end
+                    
+                    task.wait(0.5)
+                end
+                
+                plotSitJumpT = false
+            end
+        end)
+        task.wait(1)
+    end
+    plotSitJumpT = false
+end
+
+-- Plot 구찌 토글
+local PlotGucciToggle = BlobTab:CreateToggle({
+    Name = "🏠 집 구찌",
+    CurrentValue = false,
+    Callback = function(Value)
+        PlotGucciT = Value
+        
+        if Value then
+            if not RagdollRemote then
+                Rayfield:Notify({
+                    Title = "❌ 오류",
+                    Content = "RagdollRemote 없음",
+                    Duration = 2
+                })
+                PlotGucciToggle:Set(false)
+                return
+            end
+            
+            if plotGucciThread then
+                task.cancel(plotGucciThread)
+            end
+            plotGucciThread = task.spawn(plotGucciLoop)
+            
+            Rayfield:Notify({
+                Title = "🏠 집 구찌",
+                Content = "활성화 (Plot 우선)",
+                Duration = 2
+            })
+        else
+            if plotGucciThread then
+                task.cancel(plotGucciThread)
+                plotGucciThread = nil
+            end
+            plotSitJumpT = false
+            
+            Rayfield:Notify({
+                Title = "🏠 집 구찌",
+                Content = "비활성화",
+                Duration = 2
+            })
+        end
+    end
+})
+
+-- Plot 구찌 수동 버튼들
+BlobTab:CreateButton({
+    Name = "🏠 Plot 블롭 찾기",
+    Callback = function()
+        local blob = findBlob()
+        if blob then
+            local location = findBlobInPlot() and "Plot" or "인벤토리"
+            Rayfield:Notify({
+                Title = "✅ 찾음",
+                Content = location .. "에 블롭 있음",
+                Duration = 2
+            })
+        else
+            Rayfield:Notify({
+                Title = "❌ 없음",
+                Content = "블롭이 없습니다",
+                Duration = 2
+            })
+        end
+    end
+})
+
+BlobTab:CreateButton({
+    Name = "🏠 Plot에 블롭 생성",
+    Callback = function()
+        local blob = spawnBlobInPlot()
+        if blob then
+            Rayfield:Notify({
+                Title = "✅ 생성됨",
+                Content = "Plot에 블롭 생성",
+                Duration = 2
+            })
+        else
+            Rayfield:Notify({
+                Title = "❌ 실패",
+                Content = "생성 실패 (Plot 필요)",
+                Duration = 2
+            })
+        end
+    end
+})
+
+BlobTab:CreateButton({
+    Name = "📋 내 Plot 번호 확인",
+    Callback = function()
+        local plotNum = getMyPlotNumber()
+        if plotNum then
+            Rayfield:Notify({
+                Title = "✅ Plot " .. plotNum,
+                Content = "당신의 Plot 번호",
+                Duration = 2
+            })
+        else
+            Rayfield:Notify({
+                Title = "❌ 없음",
+                Content = "Plot이 없습니다",
+                Duration = 2
+            })
+        end
+    end
+})
 
 -- =============================================
 -- [ 설정 탭 ]
