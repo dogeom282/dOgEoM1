@@ -2509,6 +2509,151 @@ local AutoGucciToggle = BlobTab:CreateToggle({
 })
 
 -- =============================================
+-- [ 집 초고속 TP 도배 ]
+-- =============================================
+BlobTab:CreateSection("🏠 집 초고속 TP")
+
+local FastPlotTPT = false
+local fastPlotTPThread = nil
+
+-- 내 Plot 번호 찾기
+local function getMyPlotNumber()
+    local plr = game.Players.LocalPlayer
+    local Plots = workspace:FindFirstChild("Plots")
+    if not Plots then return nil end
+    
+    for i = 1, 5 do
+        local plot = Plots:FindFirstChild("Plot" .. i)
+        if plot then
+            local plotSign = plot:FindFirstChild("PlotSign")
+            if plotSign then
+                local owners = plotSign:FindFirstChild("ThisPlotsOwners")
+                if owners then
+                    for _, owner in ipairs(owners:GetChildren()) do
+                        if owner:IsA("StringValue") and owner.Value == plr.Name then
+                            return i
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return nil
+end
+
+-- 내 Plot 중심 좌표 가져오기
+local function getPlotCenter(plotNumber)
+    local Plots = workspace:FindFirstChild("Plots")
+    if not Plots then return nil end
+    
+    local plot = Plots:FindFirstChild("Plot" .. plotNumber)
+    if not plot then return nil end
+    
+    local plotArea = plot:FindFirstChild("PlotArea")
+    if plotArea and plotArea:IsA("BasePart") then
+        return plotArea.Position + Vector3.new(0, 5, 0)
+    end
+    
+    local barrier = plot:FindFirstChild("Barrier")
+    if barrier then
+        local totalPos = Vector3.new(0, 0, 0)
+        local count = 0
+        for _, part in ipairs(barrier:GetChildren()) do
+            if part:IsA("BasePart") then
+                totalPos = totalPos + part.Position
+                count = count + 1
+            end
+        end
+        if count > 0 then
+            return (totalPos / count) + Vector3.new(0, 5, 0)
+        end
+    end
+    
+    return nil
+end
+
+-- 초고속 TP 도배 함수
+local function fastPlotTPLoop()
+    while FastPlotTPT do
+        pcall(function()
+            local char = game.Players.LocalPlayer.Character
+            if not char then return end
+            
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if not hrp then return end
+            
+            local myPlotNum = getMyPlotNumber()
+            if not myPlotNum then return end
+            
+            local targetPos = getPlotCenter(myPlotNum)
+            if not targetPos then return end
+            
+            -- 초고속 TP 도배 (매 프레임마다 TP)
+            hrp.CFrame = CFrame.new(targetPos)
+            
+            -- SetOwner 스타일로 빠르게 반복
+            for i = 1, 5 do
+                hrp.CFrame = CFrame.new(targetPos)
+                task.wait()
+            end
+        end)
+        task.wait() -- 매 프레임마다 실행
+    end
+end
+
+-- 집 초고속 TP 토글
+local FastPlotTPToggle = BlobTab:CreateToggle({
+    Name = "⚡ 집 초고속 TP",
+    CurrentValue = false,
+    Callback = function(Value)
+        FastPlotTPT = Value
+        
+        if Value then
+            -- Plot 확인
+            local myPlotNum = getMyPlotNumber()
+            if not myPlotNum then
+                Rayfield:Notify({
+                    Title = "❌ 오류",
+                    Content = "소유한 집이 없습니다",
+                    Duration = 2
+                })
+                FastPlotTPToggle:Set(false)
+                return
+            end
+            
+            -- 루프 시작
+            if fastPlotTPThread then
+                task.cancel(fastPlotTPThread)
+            end
+            fastPlotTPThread = task.spawn(fastPlotTPLoop)
+            
+            Rayfield:Notify({
+                Title = "루프티..피?",
+                Content = "Plot " .. myPlotNum .. " 도배 시작",
+                Duration = 2
+            })
+        else
+            -- 루프 종료
+            if fastPlotTPThread then
+                task.cancel(fastPlotTPThread)
+                fastPlotTPThread = nil
+            end
+            
+            Rayfield:Notify({
+                Title = "⚡ 루프티..피?",
+                Content = "종료",
+                Duration = 2
+            })
+        end
+    end
+})
+
+BlobTab:CreateParagraph({
+    Title = "📌 설명",
+    Content = "?"
+})
+
+-- =============================================
 -- [ 그랩 탭 ]
 -- =============================================
 GrabTab:CreateSection("🔄 그랩 공격")
