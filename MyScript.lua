@@ -1960,9 +1960,224 @@ local function teleportTo(name, x, y, z)
 end
 
 -- =============================================
--- [ 메인 탭 - 안티 그랩 (pcall 추가) ]
+-- [ 메인 탭 - 안티 그랩 (업그레이드 버전) ]
 -- =============================================
 MainTab:CreateSection("🛡️ 기본 방어")
+
+-- 변수 선언
+local antiGrabConn = nil
+local isvs = false
+
+-- setRagdollF 함수 (없으면 추가)
+local function setRagdollF(state)
+    local char = plr.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    local RagdollRemote = rs and rs:FindFirstChild("CharacterEvents") and rs.CharacterEvents:FindFirstChild("RagdollRemote")
+    if RagdollRemote then
+        RagdollRemote:FireServer(hrp, state and 0 or 1)
+    end
+end
+
+-- 안티그랩 함수
+local function AntiGrabF(enable)
+    if antiGrabConn then
+        antiGrabConn:Disconnect()
+        antiGrabConn = nil
+    end
+
+    if not enable then 
+        local char = plr.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        local hum = char and char:FindFirstChild("Humanoid")
+
+        if hum then
+            hum.RequiresNeck = true
+        end
+
+        if hrp and hrp.Anchored then hrp.Anchored = false end
+        if hum then
+            hum.Sit = false
+            hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+        end
+        return 
+    end
+
+    local lastHeldState = false
+    local sitHoldTimer = 0
+    local shouldKeepSit = false
+    local wasHeld = false
+    local lastRagdollTime = 0
+    local ragdollDuration = 0.48
+
+    antiGrabConn = RunService.Heartbeat:Connect(function(deltaTime)
+        local char = plr.Character
+        if not char then return end
+
+        local hum = char:FindFirstChild("Humanoid")
+        if not hum then return end
+        
+        local isvs = hum.SeatPart ~= nil
+
+        local isHeld = plr:FindFirstChild("IsHeld")
+        if not isHeld then return end
+
+        local head = char:FindFirstChild("Head")
+        local POR = head and head:FindFirstChild("PartOwner")
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        local hrp2 = char:FindFirstChild("Torso")
+        
+        if not hrp then return end
+
+        local FPDH = workspace.FallenPartsDestroyHeight
+        local DY = (FPDH <= -50000 and -49999) or (FPDH <= -100 and -99) or -100
+        local now = tick()
+
+        if hum then
+            hum.RequiresNeck = false
+            hum.AutoRotate = true
+        end
+
+        if POR and POR.Value then
+            local attackerName = POR.Value
+            -- 화이트리스트 체크 (있으면)
+        end
+
+        local rag = hum:FindFirstChild("Ragdolled")
+        if isHeld.Value == true and rag and rag.Value == true then
+            for _, limbName in ipairs({"Head", "Left Arm", "Right Arm", "Left Leg", "Right Leg"}) do
+                local limb = char:FindFirstChild(limbName)
+                if limb then
+                    local ragdollPart = limb:FindFirstChild("RagdollLimbPart")
+                    local ragdollCons = limb:FindFirstChild("BallSocketConstraint")
+                    if ragdollCons then ragdollCons.Enabled = false end
+                    if ragdollPart then ragdollPart.CanCollide = false end
+                end
+            end
+        end
+
+        if hum.Health <= 0 then
+            lastHeldState = false
+            shouldKeepSit = false
+            sitHoldTimer = 0
+            wasHeld = false
+            hum.Sit = false
+            hum.AutoRotate = true
+        end
+
+        if not hrp or hum.Health <= 0 then
+            local Struggle = rs and rs:FindFirstChild("CharacterEvents") and rs.CharacterEvents:FindFirstChild("Struggle")
+            if Struggle then Struggle:FireServer() end
+            if hrp2 then
+                hrp2.CFrame = CFrame.new(9999, DY, 9999)
+            end
+        end
+
+        if isHeld.Value == true then
+            if hum.MoveDirection.Magnitude > 0 then
+                local moveSpeed = 10
+                local moveVector = hum.MoveDirection * deltaTime * moveSpeed
+
+                hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+
+                moveVector = Vector3.new(moveVector.X, 0, moveVector.Z)
+                hrp.CFrame = hrp.CFrame + moveVector
+                if hrp2 then hrp2.CFrame = hrp2.CFrame + moveVector end
+            end
+        end
+
+        if isHeld.Value ~= lastHeldState then
+            if isHeld.Value == true then
+                wasHeld = true
+                shouldKeepSit = true
+                sitHoldTimer = 0.3
+                hum:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
+                hum.Sit = true
+                hum.AutoRotate = true
+
+                lastRagdollTime = now
+                if POR and hrp then
+                    local Struggle = rs and rs:FindFirstChild("CharacterEvents") and rs.CharacterEvents:FindFirstChild("Struggle")
+                    local RagdollRemote = rs and rs:FindFirstChild("CharacterEvents") and rs.CharacterEvents:FindFirstChild("RagdollRemote")
+                    if Struggle then Struggle:FireServer() end
+                    if RagdollRemote then RagdollRemote:FireServer(hrp, 0) end
+                end
+
+                if hrp then
+                    setRagdollF(true)
+                end
+            else
+                if wasHeld then
+                    shouldKeepSit = true
+                    sitHoldTimer = 0.3
+                end
+            end
+            lastHeldState = isHeld.Value
+        end
+
+        if lastRagdollTime > 0 and now - lastRagdollTime >= ragdollDuration then
+            setRagdollF(false)
+            lastRagdollTime = 0
+        end
+
+        if isHeld.Value == true and lastRagdollTime > 0 and now - lastRagdollTime < ragdollDuration then
+            if hrp then 
+                setRagdollF(true)
+            end
+        end
+
+        if sitHoldTimer > 0 then
+            sitHoldTimer = sitHoldTimer - deltaTime
+
+            if isHeld.Value == true or POR or (rag and rag.Value == true) then
+                shouldKeepSit = true
+                sitHoldTimer = 0.3
+                hum.Sit = true
+                if isHeld.Value == true then
+                    hum:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
+                end
+            else
+                hum.Sit = true
+            end
+        end
+
+        if sitHoldTimer <= 0 and shouldKeepSit then
+            local currentRagdolled = hum:FindFirstChild("Ragdolled")
+            if not currentRagdolled or currentRagdolled.Value == false then
+                hum.Sit = false
+                hum:ChangeState(Enum.HumanoidStateType.Running)
+                shouldKeepSit = false
+                wasHeld = false
+            else
+                sitHoldTimer = 0.3
+            end
+        end
+
+        if shouldKeepSit then
+            hum.Sit = true
+        end
+
+        if POR then
+            local attackerName = POR.Value
+            local Struggle = rs and rs:FindFirstChild("CharacterEvents") and rs.CharacterEvents:FindFirstChild("Struggle")
+            local RagdollRemote = rs and rs:FindFirstChild("CharacterEvents") and rs.CharacterEvents:FindFirstChild("RagdollRemote")
+            
+            if Struggle then Struggle:FireServer() end
+            if RagdollRemote then RagdollRemote:FireServer(hrp, 0) end
+            
+            shouldKeepSit = true
+            sitHoldTimer = 0.3
+            hum.Sit = true
+            hum.AutoRotate = true
+            lastRagdollTime = now
+            if hrp then
+                setRagdollF(true)
+            end
+        end
+    end)
+end
 
 -- 안티 그랩 토글
 local AntiGrabToggle = MainTab:CreateToggle({
@@ -1970,16 +2185,21 @@ local AntiGrabToggle = MainTab:CreateToggle({
     CurrentValue = false,
     Flag = "AntiGrabMainToggle",
     Callback = function(Value)
-        -- pcall로 감싸서 에러 방지
         local success, err = pcall(function()
-            isAntiGrabEnabled = Value
             if Value then
-                AntiGrabF(Value)
+                AntiGrabF(true)
+                Rayfield:Notify({
+                    Title = "✅ 안티 그랩",
+                    Content = "활성화",
+                    Duration = 2
+                })
             else
-                if antiGrabConn then
-                    antiGrabConn:Disconnect()
-                    antiGrabConn = nil
-                end
+                AntiGrabF(false)
+                Rayfield:Notify({
+                    Title = "❌ 안티 그랩",
+                    Content = "비활성화",
+                    Duration = 2
+                })
             end
         end)
         
@@ -1993,6 +2213,13 @@ local AntiGrabToggle = MainTab:CreateToggle({
         end
     end
 })
+
+-- 자동 실행
+task.spawn(function()
+    task.wait(2)
+    AntiGrabF(true)
+    AntiGrabToggle:Set(true)
+end)
 
 -- 쓰지마세요 버튼
 MainTab:CreateButton({
