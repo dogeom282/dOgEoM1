@@ -2190,7 +2190,7 @@ end
 
 -- 안티 그랩 토글
 local AntiGrabToggle = MainTab:CreateToggle({
-    Name = "⚡ 안티 그랩 (raw ver.)",
+    Name = "⚡ 안티 그랩",
     CurrentValue = false,
     Flag = "AntiGrabMainToggle",
     Callback = function(Value)
@@ -2198,14 +2198,14 @@ local AntiGrabToggle = MainTab:CreateToggle({
             if Value then
                 AntiGrabF(true)
                 Rayfield:Notify({
-                    Title = "✅ 안티그랩",
+                    Title = "✅ 안티 그랩",
                     Content = "활성화",
                     Duration = 2
                 })
             else
                 AntiGrabF(false)
                 Rayfield:Notify({
-                    Title = "❌ 안티그랩",
+                    Title = "❌ 안티 그랩",
                     Content = "비활성화",
                     Duration = 2
                 })
