@@ -1960,15 +1960,16 @@ local function teleportTo(name, x, y, z)
 end
 
 -- =============================================
--- [ 메인 탭 - 안티 그랩 (업그레이드 버전) ]
+-- [ 메인 탭 - 안티 그랩 (ㄴㄱㅁ) ]
 -- =============================================
 MainTab:CreateSection("🛡️ 기본 방어")
 
 -- 변수 선언
 local antiGrabConn = nil
 local isvs = false
+local RunService = game:GetService("RunService")
 
--- setRagdollF 함수 (없으면 추가)
+-- setRagdollF 함수
 local function setRagdollF(state)
     local char = plr.Character
     if not char then return end
@@ -1980,7 +1981,7 @@ local function setRagdollF(state)
     end
 end
 
--- 안티그랩 함수
+-- raw 소스 안티그랩 함수
 local function AntiGrabF(enable)
     if antiGrabConn then
         antiGrabConn:Disconnect()
@@ -1989,17 +1990,19 @@ local function AntiGrabF(enable)
 
     if not enable then 
         local char = plr.Character
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        local hum = char and char:FindFirstChild("Humanoid")
+        if char then
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            local hum = char:FindFirstChild("Humanoid")
 
-        if hum then
-            hum.RequiresNeck = true
-        end
+            if hum then
+                hum.RequiresNeck = true
+            end
 
-        if hrp and hrp.Anchored then hrp.Anchored = false end
-        if hum then
-            hum.Sit = false
-            hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+            if hrp and hrp.Anchored then hrp.Anchored = false end
+            if hum then
+                hum.Sit = false
+                hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+            end
         end
         return 
     end
@@ -2018,7 +2021,7 @@ local function AntiGrabF(enable)
         local hum = char:FindFirstChild("Humanoid")
         if not hum then return end
         
-        local isvs = hum.SeatPart ~= nil
+        isvs = hum and hum.SeatPart ~= nil
 
         local isHeld = plr:FindFirstChild("IsHeld")
         if not isHeld then return end
@@ -2028,7 +2031,7 @@ local function AntiGrabF(enable)
         local hrp = char:FindFirstChild("HumanoidRootPart")
         local hrp2 = char:FindFirstChild("Torso")
         
-        if not hrp then return end
+        if not hrp or not hum then return end
 
         local FPDH = workspace.FallenPartsDestroyHeight
         local DY = (FPDH <= -50000 and -49999) or (FPDH <= -100 and -99) or -100
@@ -2039,10 +2042,16 @@ local function AntiGrabF(enable)
             hum.AutoRotate = true
         end
 
+        if isvs and POR then
+            task.wait(0.3)
+        end
+
         if POR and POR.Value then
             local attackerName = POR.Value
-            -- 화이트리스트 체크 (있으면)
+            -- 화이트리스트 기능은 필요시 추가
         end
+
+        if isvs then task.wait(0.3) end
 
         local rag = hum:FindFirstChild("Ragdolled")
         if isHeld.Value == true and rag and rag.Value == true then
@@ -2181,7 +2190,7 @@ end
 
 -- 안티 그랩 토글
 local AntiGrabToggle = MainTab:CreateToggle({
-    Name = "⚡ 안티 그랩",
+    Name = "⚡ 안티 그랩 (raw ver.)",
     CurrentValue = false,
     Flag = "AntiGrabMainToggle",
     Callback = function(Value)
@@ -2189,14 +2198,14 @@ local AntiGrabToggle = MainTab:CreateToggle({
             if Value then
                 AntiGrabF(true)
                 Rayfield:Notify({
-                    Title = "✅ 안티 그랩",
+                    Title = "✅ 안티그랩",
                     Content = "활성화",
                     Duration = 2
                 })
             else
                 AntiGrabF(false)
                 Rayfield:Notify({
-                    Title = "❌ 안티 그랩",
+                    Title = "❌ 안티그랩",
                     Content = "비활성화",
                     Duration = 2
                 })
@@ -2220,7 +2229,6 @@ task.spawn(function()
     AntiGrabF(true)
     AntiGrabToggle:Set(true)
 end)
-
 -- 쓰지마세요 버튼
 MainTab:CreateButton({
     Name = "🔓 쓰지마세요",
