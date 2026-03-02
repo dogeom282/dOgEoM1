@@ -2764,6 +2764,178 @@ local AntiPaintToggle = SecurityTab:CreateToggle({
 })
 
 -- =============================================
+-- [ 도넛 매크로 (보안탭) ]
+-- =============================================
+SecurityTab:CreateSection("안티 릴리즈")
+
+local DonutMacroT = false
+local donutMacroThread = nil
+local donutSpawnThread = nil
+
+-- 도넛 매크로 함수
+local function startDonutMacro()
+    -- 변수 설정
+    local Players = game:GetService("Players")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local Workspace = game:GetService("Workspace")
+    
+    local player = Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local rootPart = character:WaitForChild("HumanoidRootPart")
+    
+    local spawnedToysFolder = Workspace:WaitForChild(player.Name .. "SpawnedInToys")
+    
+    -- 도넛 생성 스레드
+    donutSpawnThread = task.spawn(function()
+        while DonutMacroT do
+            local currentDonut = spawnedToysFolder:FindFirstChild("FoodDonut")
+            if not currentDonut then
+                local spawnOffset = CFrame.new(-3.53, 0, 3.53)
+                local spawnCFrame = rootPart.CFrame * spawnOffset
+                
+                local spawnArgs = {
+                    [1] = "FoodDonut",
+                    [2] = spawnCFrame,
+                    [3] = Vector3.new(0, 140, 0)
+                }
+                
+                task.spawn(function()
+                    pcall(function()
+                        ReplicatedStorage:WaitForChild("MenuToys"):WaitForChild("SpawnToyRemoteFunction"):InvokeServer(unpack(spawnArgs))
+                    end)
+                end)
+            end
+            task.wait(0.3)
+        end
+    end)
+    
+    -- 도넛 잡기/놓기 스레드
+    donutMacroThread = task.spawn(function()
+        while DonutMacroT do
+            local currentDonut = spawnedToysFolder:FindFirstChild("FoodDonut")
+            
+            if currentDonut then
+                local holdPart = currentDonut:FindFirstChild("HoldPart")
+                if holdPart then
+                    local holdRemote = holdPart:FindFirstChild("HoldItemRemoteFunction")
+                    local dropRemote = holdPart:FindFirstChild("DropItemRemoteFunction")
+                    
+                    if holdRemote and dropRemote then
+                        -- 잡기
+                        task.spawn(function()
+                            pcall(function()
+                                holdRemote:InvokeServer(currentDonut, character)
+                            end)
+                        end)
+                        
+                        task.wait(0.018)
+                        if not DonutMacroT then break end
+                        
+                        -- 놓기 (Y=99999)
+                        task.spawn(function()
+                            pcall(function()
+                                local dropCFrame = CFrame.new(rootPart.Position.X, 99999, rootPart.Position.Z)
+                                dropRemote:InvokeServer(currentDonut, dropCFrame, Vector3.new(0, 0, 0))
+                            end)
+                        end)
+                    else
+                        task.wait()
+                    end
+                else
+                    task.wait()
+                end
+            else
+                task.wait()
+            end
+        end
+    end)
+end
+
+-- 도넛 매크로 중지 함수
+local function stopDonutMacro()
+    DonutMacroT = false
+    
+    if donutSpawnThread then
+        task.cancel(donutSpawnThread)
+        donutSpawnThread = nil
+    end
+    
+    if donutMacroThread then
+        task.cancel(donutMacroThread)
+        donutMacroThread = nil
+    end
+    
+    -- 마지막 도넛 제거
+    pcall(function()
+        local player = game.Players.LocalPlayer
+        local spawnedToysFolder = workspace:FindFirstChild(player.Name .. "SpawnedInToys")
+        if spawnedToysFolder then
+            local donut = spawnedToysFolder:FindFirstChild("FoodDonut")
+            if donut then
+                ReplicatedStorage:WaitForChild("MenuToys"):WaitForChild("DestroyToy"):FireServer(donut)
+            end
+        end
+    end)
+end
+
+-- 도넛 매크로 토글
+local DonutMacroToggle = SecurityTab:CreateToggle({
+    Name = "안티 릴리즈",
+    CurrentValue = false,
+    Callback = function(Value)
+        DonutMacroT = Value
+        
+        if Value then
+            -- 시작
+            startDonutMacro()
+            
+            Rayfield:Notify({
+                Title = "안티 릴리즈",
+                Content = "활성화",
+                Duration = 2
+            })
+        else
+            -- 중지
+            stopDonutMacro()
+            
+            Rayfield:Notify({
+                Title = "안티 릴리즈",
+                Content = "비활성화",
+                Duration = 2
+            })
+        end
+    end
+})
+
+-- 상태 표시
+local donutStatusLabel = SecurityTab:CreateLabel("도넛 상태: -", 4483362458)
+
+-- 실시간 업데이트
+spawn(function()
+    while true do
+        if DonutMacroT then
+            pcall(function()
+                local player = game.Players.LocalPlayer
+                local spawnedToysFolder = workspace:FindFirstChild(player.Name .. "SpawnedInToys")
+                if spawnedToysFolder and spawnedToysFolder:FindFirstChild("FoodDonut") then
+                    donutStatusLabel:Set("도넛 상태: ✅ 있음")
+                else
+                    donutStatusLabel:Set("도넛 상태: ❌ 없음 (생성중)")
+                end
+            end)
+        else
+            donutStatusLabel:Set("도넛 상태: -")
+        end
+        task.wait(0.5)
+    end
+end)
+
+SecurityTab:CreateParagraph({
+    Title = "📌 설명",
+    Content = "안티 릴리즈"
+})
+
+-- =============================================
 -- [ 킥그랩 탭 (완전판) ]
 -- =============================================
 KickGrabTab:CreateSection("🎯 킥그랩 대상 리스트")
