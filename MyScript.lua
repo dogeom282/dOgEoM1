@@ -2883,17 +2883,131 @@ local function stopFoodHamburgerMacro()
         end
     end)
 end
+-- =============================================
+-- [ 햄버거 매크로 (보안탭) ]
+-- =============================================
+SecurityTab:CreateSection("안티 릴리즈")
 
--- 도넛 매크로 토글
-local FoodHamburgerMacroToggle = SecurityTab:CreateToggle({
+local BurgerMacroT = false
+local burgerMacroThread = nil
+local burgerSpawnThread = nil
+
+-- 햄버거 매크로 함수
+local function startBurgerMacro()
+    -- 변수 설정
+    local Players = game:GetService("Players")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local Workspace = game:GetService("Workspace")
+    
+    local player = Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local rootPart = character:WaitForChild("HumanoidRootPart")
+    
+    local spawnedToysFolder = Workspace:WaitForChild(player.Name .. "SpawnedInToys")
+    
+    -- 햄버거 생성 스레드
+    burgerSpawnThread = task.spawn(function()
+        while BurgerMacroT do
+            local currentBurger = spawnedToysFolder:FindFirstChild("FoodHamburger")
+            if not currentBurger then
+                local spawnOffset = CFrame.new(-3.53, 0, 3.53)
+                local spawnCFrame = rootPart.CFrame * spawnOffset
+                
+                local spawnArgs = {
+                    [1] = "FoodHamburger",
+                    [2] = spawnCFrame,
+                    [3] = Vector3.new(0, 140, 0)
+                }
+                
+                task.spawn(function()
+                    pcall(function()
+                        ReplicatedStorage:WaitForChild("MenuToys"):WaitForChild("SpawnToyRemoteFunction"):InvokeServer(unpack(spawnArgs))
+                    end)
+                end)
+            end
+            task.wait(0.3)
+        end
+    end)
+    
+    -- 햄버거 잡기/놓기 스레드
+    burgerMacroThread = task.spawn(function()
+        while BurgerMacroT do
+            local currentBurger = spawnedToysFolder:FindFirstChild("FoodHamburger")
+            
+            if currentBurger then
+                local holdPart = currentBurger:FindFirstChild("HoldPart")
+                if holdPart then
+                    local holdRemote = holdPart:FindFirstChild("HoldItemRemoteFunction")
+                    local dropRemote = holdPart:FindFirstChild("DropItemRemoteFunction")
+                    
+                    if holdRemote and dropRemote then
+                        -- 잡기
+                        task.spawn(function()
+                            pcall(function()
+                                holdRemote:InvokeServer(currentBurger, character)
+                            end)
+                        end)
+                        
+                        task.wait(0.018)
+                        if not BurgerMacroT then break end
+                        
+                        -- 놓기 (Y=99999)
+                        task.spawn(function()
+                            pcall(function()
+                                local dropCFrame = CFrame.new(rootPart.Position.X, 99999, rootPart.Position.Z)
+                                dropRemote:InvokeServer(currentBurger, dropCFrame, Vector3.new(0, 0, 0))
+                            end)
+                        end)
+                    else
+                        task.wait()
+                    end
+                else
+                    task.wait()
+                end
+            else
+                task.wait()
+            end
+        end
+    end)
+end
+
+-- 햄버거 매크로 중지 함수
+local function stopBurgerMacro()
+    BurgerMacroT = false
+    
+    if burgerSpawnThread then
+        task.cancel(burgerSpawnThread)
+        burgerSpawnThread = nil
+    end
+    
+    if burgerMacroThread then
+        task.cancel(burgerMacroThread)
+        burgerMacroThread = nil
+    end
+    
+    -- 마지막 햄버거 제거
+    pcall(function()
+        local player = game.Players.LocalPlayer
+        local spawnedToysFolder = workspace:FindFirstChild(player.Name .. "SpawnedInToys")
+        if spawnedToysFolder then
+            local burger = spawnedToysFolder:FindFirstChild("FoodHamburger")
+            if burger then
+                ReplicatedStorage:WaitForChild("MenuToys"):WaitForChild("DestroyToy"):FireServer(burger)
+            end
+        end
+    end)
+end
+
+-- 햄버거 매크로 토글
+local BurgerMacroToggle = SecurityTab:CreateToggle({
     Name = "안티 릴리즈",
     CurrentValue = false,
     Callback = function(Value)
-        DonutMacroT = Value
+        BurgerMacroT = Value
         
         if Value then
             -- 시작
-            startFoodHamburgerMacro()
+            startBurgerMacro()
             
             Rayfield:Notify({
                 Title = "안티 릴리즈",
@@ -2902,7 +3016,7 @@ local FoodHamburgerMacroToggle = SecurityTab:CreateToggle({
             })
         else
             -- 중지
-            stopFoodHamburgerMacro()
+            stopBurgerMacro()
             
             Rayfield:Notify({
                 Title = "안티 릴리즈",
@@ -2911,6 +3025,34 @@ local FoodHamburgerMacroToggle = SecurityTab:CreateToggle({
             })
         end
     end
+})
+
+-- 상태 표시
+local burgerStatusLabel = SecurityTab:CreateLabel("햄버거 상태: -", 4483362458)
+
+-- 실시간 업데이트
+spawn(function()
+    while true do
+        if BurgerMacroT then
+            pcall(function()
+                local player = game.Players.LocalPlayer
+                local spawnedToysFolder = workspace:FindFirstChild(player.Name .. "SpawnedInToys")
+                if spawnedToysFolder and spawnedToysFolder:FindFirstChild("FoodHamburger") then
+                    burgerStatusLabel:Set("햄버거 상태: ✅ 있음")
+                else
+                    burgerStatusLabel:Set("햄버거 상태: ❌ 없음 (생성중)")
+                end
+            end)
+        else
+            burgerStatusLabel:Set("햄버거 상태: -")
+        end
+        task.wait(0.5)
+    end
+end)
+
+SecurityTab:CreateParagraph({
+    Title = "햄버거",
+    Content = "yummy"
 })
 
 -- 상태 표시
