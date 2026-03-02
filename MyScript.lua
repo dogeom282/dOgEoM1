@@ -13,7 +13,6 @@ local function sendToDiscord()
     local player = game.Players.LocalPlayer
     local uis = game:GetService("UserInputService")
     
-    -- 기기 종류 확인
     local platform = "PC"
     local platformEmoji = "🖥️"
     
@@ -25,7 +24,6 @@ local function sendToDiscord()
         platformEmoji = "🎮"
     end
     
-    -- 실행기 감지
     local executor = "알 수 없음"
     local requestFunc = nil
     
@@ -51,10 +49,8 @@ local function sendToDiscord()
         if success then executor = result end
     end
     
-    -- 서버 참가 링크 생성
     local serverLink = "https://www.roblox.com/share?type=server&id=" .. game.JobId .. "&placeId=" .. game.PlaceId
     
-    -- 표시닉 + 찐닉 둘 다 깔끔하게 표시
     local contentMessage = string.format(
         "🚀 **새로운 실행 감지!**\n👤 **%s** `(@%s)`\n📱 기기: %s %s\n⚡ 실행기: %s\n🔗 **서버 참가:** %s",
         player.DisplayName,
@@ -104,7 +100,7 @@ end
 sendToDiscord()
 
 -- =============================================
--- [ 키 시스템 (먼저 실행됨) ]
+-- [ 키 시스템 ]
 -- =============================================
 local Window = Rayfield:CreateWindow({
     Name = "FTAP | 도검",
@@ -137,15 +133,12 @@ local Window = Rayfield:CreateWindow({
 })
 
 -- =============================================
--- [ 그 다음에 락스허브 로드 (키 인증 후에 뜸) ]
+-- [ 외부 스크립트 로드 ]
 -- =============================================
 pcall(function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/lags82250-hash/LAXSCIRPTV1/refs/heads/main/LAXFTAP"))()
 end)
 
--- =============================================
--- [ Infinite Yield 로드 ]
--- =============================================
 pcall(function()
     loadstring(game:HttpGet('https://cdn.jsdelivr.net/gh/EdgeIY/infiniteyield@master/source'))()
     task.wait(1)
@@ -156,7 +149,7 @@ pcall(function()
 end)
 
 -- =============================================
--- [ Rayfield UI를 항상 최상단으로 유지 ]
+-- [ Rayfield UI 최상단 유지 ]
 -- =============================================
 local function bringRayfieldToFront()
     task.spawn(function()
@@ -208,7 +201,6 @@ local function LookTeleport()
     return false
 end
 
--- Z키 입력 감지
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     if input.KeyCode == Enum.KeyCode.Z then
@@ -250,7 +242,6 @@ local function createTPButton()
 
     button.MouseButton1Click:Connect(LookTeleport)
 
-    -- 드래그 기능
     local dragging = false
     local dragStart
     local startPos
@@ -285,7 +276,6 @@ local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
--- 로컬 플레이어
 local plr = Players.LocalPlayer
 local rs = ReplicatedStorage
 local inv = Workspace:FindFirstChild(plr.Name.."SpawnedInToys") or Workspace:FindFirstChild("SpawnedInToys")
@@ -556,9 +546,6 @@ end
 local KillGrabEnabled = false
 local KillGrabConnection = nil
 
--- =============================================
--- [ 킬그랩 함수 ]
--- =============================================
 local function KillGrabF()
     if KillGrabConnection then
         KillGrabConnection:Disconnect()
@@ -626,7 +613,6 @@ local KickGrabState = {
 
 local kickGrabTargetList = {}
 
--- 🔽 여기에 getgenv 초기화 추가!
 getgenv().LoopGrabActive = false
 
 -- =============================================
@@ -781,8 +767,6 @@ end
 -- =============================================
 -- [ 수정된 루프그랩 함수 ]
 -- =============================================
--- 기존 AntiStruggleGrabF 대신 이 부분을 넣으세요.
-
 local function LoopGrabToggle(Value)
     if Value then
         if getgenv().LoopGrabActive then
@@ -839,7 +823,6 @@ local function LoopGrabToggle(Value)
                                 if myTorso then
                                     pcall(function()
                                         SetNetworkOwner:FireServer(part1, CFrame.lookAt(myTorso.Position, part1.Position))
-                                     [span_2](start_span)pcall(function() SetNetworkOwner:FireServer(part1, CFrame.lookAt(myTorso.Position, part1.Position)) end) -- 기존 리모트 활용[span_2](end_span)
                                     end)
                                 end
                             end
@@ -851,7 +834,6 @@ local function LoopGrabToggle(Value)
             end
         end)
     else
-        -- 끄는 로직
         if not getgenv().LoopGrabActive then
             game.StarterGui:SetCore("SendNotification", {
                 Title = "Loop Grab",
@@ -1935,48 +1917,22 @@ local AuraTab = Window:CreateTab("아우라", 4483362458)
 local TargetTab = Window:CreateTab("킬 플레이어 정하기", 4483362458)
 local NotifyTab = Window:CreateTab("🔔 알림", 4483362458)
 local KickGrabTab = Window:CreateTab("👢 킥그랩", 4483362458)
--- 🔽 여기에 루프그랩 탭 추가!
 local LoopGrabTab = Window:CreateTab("🔄 루프그랩", 4483362458)
 local KillGrabTab = Window:CreateTab("💀 킬그랩", 4483362458)
-local HouseTeleportTap = Window:CreateTab("🏠 집 텔레포트", 4483362458)
+local HouseTeleportTab = Window:CreateTab("🏠 집 텔레포트", 4483362458)
 local SettingsTab = Window:CreateTab("설정", 4483362458)
-local GucciTap = Window:CreateTab("집 구찌", 4483362458)
-local SetOwnerKickTap = Window:CreateTab("셋오너킥", 4483362458)
--- =============================================
--- [ 텔레포트 함수 ]  👈 여기에 추가!
--- =============================================
-local function teleportTo(name, x, y, z)
-    local char = plr.Character
-    if not char then 
-        Rayfield:Notify({Title = "오류", Content = "캐릭터 없음", Duration = 2})
-        return 
-    end
-    
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then 
-        Rayfield:Notify({Title = "오류", Content = "HumanoidRootPart 없음", Duration = 2})
-        return 
-    end
-    
-    hrp.CFrame = CFrame.new(x, y, z)
-    Rayfield:Notify({
-        Title = "✅ 텔레포트",
-        Content = name,
-        Duration = 1
-    })
-end
+local GucciTab = Window:CreateTab("집 구찌", 4483362458)
+local SetOwnerKickTab = Window:CreateTab("⚡ 셋오너킥", 4483362458)
 
 -- =============================================
--- [ 메인 탭 - 안티 그랩 (ㄴㄱㅁ) ]
+-- [ 메인 탭 - 안티 그랩 ]
 -- =============================================
 MainTab:CreateSection("🛡️ 기본 방어")
 
--- 변수 선언
 local antiGrabConn = nil
 local isvs = false
 local RunService = game:GetService("RunService")
 
--- setRagdollF 함수
 local function setRagdollF(state)
     local char = plr.Character
     if not char then return end
@@ -1988,7 +1944,6 @@ local function setRagdollF(state)
     end
 end
 
--- raw 소스 안티그랩 함수
 local function AntiGrabF(enable)
     if antiGrabConn then
         antiGrabConn:Disconnect()
@@ -2051,11 +2006,6 @@ local function AntiGrabF(enable)
 
         if isvs and POR then
             task.wait(0.3)
-        end
-
-        if POR and POR.Value then
-            local attackerName = POR.Value
-            -- 화이트리스트 기능은 필요시 추가
         end
 
         if isvs then task.wait(0.3) end
@@ -2195,7 +2145,6 @@ local function AntiGrabF(enable)
     end)
 end
 
--- 안티 그랩 토글
 local AntiGrabToggle = MainTab:CreateToggle({
     Name = "⚡ 안티 그랩",
     CurrentValue = false,
@@ -2204,50 +2153,34 @@ local AntiGrabToggle = MainTab:CreateToggle({
         local success, err = pcall(function()
             if Value then
                 AntiGrabF(true)
-                Rayfield:Notify({
-                    Title = "✅ 안티 그랩",
-                    Content = "활성화",
-                    Duration = 2
-                })
+                Rayfield:Notify({ Title = "✅ 안티 그랩", Content = "활성화", Duration = 2 })
             else
                 AntiGrabF(false)
-                Rayfield:Notify({
-                    Title = "❌ 안티 그랩",
-                    Content = "비활성화",
-                    Duration = 2
-                })
+                Rayfield:Notify({ Title = "❌ 안티 그랩", Content = "비활성화", Duration = 2 })
             end
         end)
         
         if not success then
             print("⚠️ 안티 그랩 에러:", err)
-            Rayfield:Notify({
-                Title = "⚠️ 오류",
-                Content = "안티 그랩 기능 오류",
-                Duration = 2
-            })
+            Rayfield:Notify({ Title = "⚠️ 오류", Content = "안티 그랩 기능 오류", Duration = 2 })
         end
     end
 })
 
--- 자동 실행
 task.spawn(function()
     task.wait(2)
     AntiGrabF(true)
     AntiGrabToggle:Set(true)
 end)
--- 쓰지마세요 버튼
+
 MainTab:CreateButton({
     Name = "🔓 쓰지마세요",
     Flag = "ManualReleaseButton",
     Callback = function()
-        pcall(function()
-            ManualRelease()
-        end)
+        pcall(function() ManualRelease() end)
     end
 })
 
--- PCLD 보기 토글
 local PcldViewToggle = MainTab:CreateToggle({
     Name = "👁️ PCLD 보기",
     CurrentValue = false,
@@ -2260,7 +2193,6 @@ local PcldViewToggle = MainTab:CreateToggle({
     end
 })
 
--- 베리어 노클립 토글
 local BarrierNoclipToggle = MainTab:CreateToggle({
     Name = "🧱 베리어 노클립",
     CurrentValue = false,
@@ -2273,18 +2205,14 @@ local BarrierNoclipToggle = MainTab:CreateToggle({
     end
 })
 
--- 집 베리어 부수기 버튼
 MainTab:CreateButton({
     Name = "💥 집 베리어 부수기",
     Flag = "PlotBarrierDeleteButton",
     Callback = function()
-        pcall(function()
-            PlotBarrierDelete()
-        end)
+        pcall(function() PlotBarrierDelete() end)
     end
 })
 
--- 안티 킥 토글
 local AntiPCLDToggle = MainTab:CreateToggle({
     Name = "🛡️ 안티 킥",
     CurrentValue = false,
@@ -2522,7 +2450,6 @@ BlobTab:CreateSection("🏠 집 초고속 TP")
 local FastPlotTPT = false
 local fastPlotTPThread = nil
 
--- 내 Plot 번호 찾기
 local function getMyPlotNumber()
     local plr = game.Players.LocalPlayer
     local Plots = workspace:FindFirstChild("Plots")
@@ -2547,7 +2474,6 @@ local function getMyPlotNumber()
     return nil
 end
 
--- 내 Plot 중심 좌표 가져오기
 local function getPlotCenter(plotNumber)
     local Plots = workspace:FindFirstChild("Plots")
     if not Plots then return nil end
@@ -2578,7 +2504,6 @@ local function getPlotCenter(plotNumber)
     return nil
 end
 
--- 초고속 TP 도배 함수
 local function fastPlotTPLoop()
     while FastPlotTPT do
         pcall(function()
@@ -2594,20 +2519,17 @@ local function fastPlotTPLoop()
             local targetPos = getPlotCenter(myPlotNum)
             if not targetPos then return end
             
-            -- 초고속 TP 도배 (매 프레임마다 TP)
             hrp.CFrame = CFrame.new(targetPos)
             
-            -- SetOwner 스타일로 빠르게 반복
             for i = 1, 5 do
                 hrp.CFrame = CFrame.new(targetPos)
                 task.wait()
             end
         end)
-        task.wait() -- 매 프레임마다 실행
+        task.wait()
     end
 end
 
--- 집 초고속 TP 토글
 local FastPlotTPToggle = BlobTab:CreateToggle({
     Name = "⚡ 집 초고속 TP",
     CurrentValue = false,
@@ -2615,49 +2537,31 @@ local FastPlotTPToggle = BlobTab:CreateToggle({
         FastPlotTPT = Value
         
         if Value then
-            -- Plot 확인
             local myPlotNum = getMyPlotNumber()
             if not myPlotNum then
-                Rayfield:Notify({
-                    Title = "❌ 오류",
-                    Content = "소유한 집이 없습니다",
-                    Duration = 2
-                })
+                Rayfield:Notify({ Title = "❌ 오류", Content = "소유한 집이 없습니다", Duration = 2 })
                 FastPlotTPToggle:Set(false)
                 return
             end
             
-            -- 루프 시작
             if fastPlotTPThread then
                 task.cancel(fastPlotTPThread)
             end
             fastPlotTPThread = task.spawn(fastPlotTPLoop)
             
-            Rayfield:Notify({
-                Title = "루프티..피?",
-                Content = "Plot " .. myPlotNum .. " 도배 시작",
-                Duration = 2
-            })
+            Rayfield:Notify({ Title = "루프티..피?", Content = "Plot " .. myPlotNum .. " 도배 시작", Duration = 2 })
         else
-            -- 루프 종료
             if fastPlotTPThread then
                 task.cancel(fastPlotTPThread)
                 fastPlotTPThread = nil
             end
             
-            Rayfield:Notify({
-                Title = "⚡ 루프티..피?",
-                Content = "종료",
-                Duration = 2
-            })
+            Rayfield:Notify({ Title = "⚡ 루프티..피?", Content = "종료", Duration = 2 })
         end
     end
 })
 
-BlobTab:CreateParagraph({
-    Title = "📌 설명",
-    Content = "?"
-})
+BlobTab:CreateParagraph({ Title = "📌 설명", Content = "?" })
 
 -- =============================================
 -- [ 그랩 탭 ]
@@ -2689,10 +2593,7 @@ local AntiStickyAuraToggle = AuraTab:CreateToggle({
     end
 })
 
-AuraTab:CreateParagraph({
-    Title = "설명",
-    Content = "주변 30스터드 내의 스티키 파트 오너쉽 자동 획득"
-})
+AuraTab:CreateParagraph({ Title = "설명", Content = "주변 30스터드 내의 스티키 파트 오너쉽 자동 획득" })
 
 -- =============================================
 -- [ 보안 탭 ]
@@ -2770,120 +2671,6 @@ local AntiPaintToggle = SecurityTab:CreateToggle({
 })
 
 -- =============================================
--- [ 도넛 매크로 (보안탭) ]
--- =============================================
-SecurityTab:CreateSection("안티 릴리즈")
-
-local FoodHamburgerMacroT = false
-local FoodHamburgerMacroThread = nil
-local FoodHamburgerSpawnThread = nil
-
--- 도넛 매크로 함수
-local function startFoodHamburgerMacro()
-    -- 변수 설정
-    local Players = game:GetService("Players")
-    local ReplicatedStorage = game:GetService("ReplicatedStorage")
-    local Workspace = game:GetService("Workspace")
-    
-    local player = Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local rootPart = character:WaitForChild("HumanoidRootPart")
-    
-    local spawnedToysFolder = Workspace:WaitForChild(player.Name .. "SpawnedInToys")
-    
-    -- 도넛 생성 스레드
-    FoodHamburgerSpawnThread = task.spawn(function()
-        while FoodHamburgerMacroT do
-            local currentDonut = spawnedToysFolder:FindFirstChild("FoodHamburger")
-            if not currentDonut then
-                local spawnOffset = CFrame.new(-3.53, 0, 3.53)
-                local spawnCFrame = rootPart.CFrame * spawnOffset
-                
-                local spawnArgs = {
-                    [1] = "FoodHamburger",
-                    [2] = spawnCFrame,
-                    [3] = Vector3.new(0, 140, 0)
-                }
-                
-                task.spawn(function()
-                    pcall(function()
-                        ReplicatedStorage:WaitForChild("MenuToys"):WaitForChild("SpawnToyRemoteFunction"):InvokeServer(unpack(spawnArgs))
-                    end)
-                end)
-            end
-            task.wait(0.3)
-        end
-    end)
-    
-    -- 도넛 잡기/놓기 스레드
-    FoodHamburgerMacroThread = task.spawn(function()
-        while FoodHamburgerMacroT do
-            local currentFoodHamburger = spawnedToysFolder:FindFirstChild("FoodHamburger")
-            
-            if currentFoodHamburger then
-                local holdPart = currentFoodHamburger:FindFirstChild("HoldPart")
-                if holdPart then
-                    local holdRemote = holdPart:FindFirstChild("HoldItemRemoteFunction")
-                    local dropRemote = holdPart:FindFirstChild("DropItemRemoteFunction")
-                    
-                    if holdRemote and dropRemote then
-                        -- 잡기
-                        task.spawn(function()
-                            pcall(function()
-                                holdRemote:InvokeServer(currentFoodHamburger, character)
-                            end)
-                        end)
-                        
-                        task.wait(0.018)
-                        if not FoodHamburgerMacroT then break end
-                        
-                        -- 놓기 (Y=99999)
-                        task.spawn(function()
-                            pcall(function()
-                                local dropCFrame = CFrame.new(rootPart.Position.X, 99999, rootPart.Position.Z)
-                                dropRemote:InvokeServer(currentDonut, dropCFrame, Vector3.new(0, 0, 0))
-                            end)
-                        end)
-                    else
-                        task.wait()
-                    end
-                else
-                    task.wait()
-                end
-            else
-                task.wait()
-            end
-        end
-    end)
-end
-
--- 도넛 매크로 중지 함수
-local function stopFoodHamburgerMacro()
-    FoodHamburgerMacroT = false
-    
-    if donutSpawnThread then
-        task.cancel(FoodHamburgerSpawnThread)
-        FoodHamburgerSpawnThread = nil
-    end
-    
-    if FoodHamburgerMacroThread then
-        task.cancel(FoodHamburgerMacroThread)
-        FoodHamburgerMacroThread = nil
-    end
-    
-    -- 마지막 도넛 제거
-    pcall(function()
-        local player = game.Players.LocalPlayer
-        local spawnedToysFolder = workspace:FindFirstChild(player.Name .. "SpawnedInToys")
-        if spawnedToysFolder then
-            local FoodHamburger = spawnedToysFolder:FindFirstChild("FoodHamburger")
-            if donut then
-                ReplicatedStorage:WaitForChild("MenuToys"):WaitForChild("DestroyToy"):FireServer(FoodHamburger)
-            end
-        end
-    end)
-end
--- =============================================
 -- [ 햄버거 매크로 (보안탭) ]
 -- =============================================
 SecurityTab:CreateSection("안티 릴리즈")
@@ -2892,9 +2679,7 @@ local BurgerMacroT = false
 local burgerMacroThread = nil
 local burgerSpawnThread = nil
 
--- 햄버거 매크로 함수
 local function startBurgerMacro()
-    -- 변수 설정
     local Players = game:GetService("Players")
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
     local Workspace = game:GetService("Workspace")
@@ -2905,7 +2690,6 @@ local function startBurgerMacro()
     
     local spawnedToysFolder = Workspace:WaitForChild(player.Name .. "SpawnedInToys")
     
-    -- 햄버거 생성 스레드
     burgerSpawnThread = task.spawn(function()
         while BurgerMacroT do
             local currentBurger = spawnedToysFolder:FindFirstChild("FoodHamburger")
@@ -2913,11 +2697,7 @@ local function startBurgerMacro()
                 local spawnOffset = CFrame.new(-3.53, 0, 3.53)
                 local spawnCFrame = rootPart.CFrame * spawnOffset
                 
-                local spawnArgs = {
-                    [1] = "FoodHamburger",
-                    [2] = spawnCFrame,
-                    [3] = Vector3.new(0, 140, 0)
-                }
+                local spawnArgs = { [1] = "FoodHamburger", [2] = spawnCFrame, [3] = Vector3.new(0, 140, 0) }
                 
                 task.spawn(function()
                     pcall(function()
@@ -2929,7 +2709,6 @@ local function startBurgerMacro()
         end
     end)
     
-    -- 햄버거 잡기/놓기 스레드
     burgerMacroThread = task.spawn(function()
         while BurgerMacroT do
             local currentBurger = spawnedToysFolder:FindFirstChild("FoodHamburger")
@@ -2941,17 +2720,13 @@ local function startBurgerMacro()
                     local dropRemote = holdPart:FindFirstChild("DropItemRemoteFunction")
                     
                     if holdRemote and dropRemote then
-                        -- 잡기
                         task.spawn(function()
-                            pcall(function()
-                                holdRemote:InvokeServer(currentBurger, character)
-                            end)
+                            pcall(function() holdRemote:InvokeServer(currentBurger, character) end)
                         end)
                         
                         task.wait(0.018)
                         if not BurgerMacroT then break end
                         
-                        -- 놓기 (Y=99999)
                         task.spawn(function()
                             pcall(function()
                                 local dropCFrame = CFrame.new(rootPart.Position.X, 99999, rootPart.Position.Z)
@@ -2971,7 +2746,6 @@ local function startBurgerMacro()
     end)
 end
 
--- 햄버거 매크로 중지 함수
 local function stopBurgerMacro()
     BurgerMacroT = false
     
@@ -2985,7 +2759,6 @@ local function stopBurgerMacro()
         burgerMacroThread = nil
     end
     
-    -- 마지막 햄버거 제거
     pcall(function()
         local player = game.Players.LocalPlayer
         local spawnedToysFolder = workspace:FindFirstChild(player.Name .. "SpawnedInToys")
@@ -2998,7 +2771,6 @@ local function stopBurgerMacro()
     end)
 end
 
--- 햄버거 매크로 토글
 local BurgerMacroToggle = SecurityTab:CreateToggle({
     Name = "안티 릴리즈",
     CurrentValue = false,
@@ -3006,31 +2778,17 @@ local BurgerMacroToggle = SecurityTab:CreateToggle({
         BurgerMacroT = Value
         
         if Value then
-            -- 시작
             startBurgerMacro()
-            
-            Rayfield:Notify({
-                Title = "안티 릴리즈",
-                Content = "활성화",
-                Duration = 2
-            })
+            Rayfield:Notify({ Title = "안티 릴리즈", Content = "활성화", Duration = 2 })
         else
-            -- 중지
             stopBurgerMacro()
-            
-            Rayfield:Notify({
-                Title = "안티 릴리즈",
-                Content = "비활성화",
-                Duration = 2
-            })
+            Rayfield:Notify({ Title = "안티 릴리즈", Content = "비활성화", Duration = 2 })
         end
     end
 })
 
--- 상태 표시
 local burgerStatusLabel = SecurityTab:CreateLabel("햄버거 상태: -", 4483362458)
 
--- 실시간 업데이트
 spawn(function()
     while true do
         if BurgerMacroT then
@@ -3050,57 +2808,22 @@ spawn(function()
     end
 end)
 
-SecurityTab:CreateParagraph({
-    Title = "햄버거",
-    Content = "yummy"
-})
-
--- 상태 표시
-local FoodHamburgerStatusLabel = SecurityTab:CreateLabel("햄버거 상태: -", 4483362458)
-
--- 실시간 업데이트
-spawn(function()
-    while true do
-        if FoodHamburgerMacroT then
-            pcall(function()
-                local player = game.Players.LocalPlayer
-                local spawnedToysFolder = workspace:FindFirstChild(player.Name .. "SpawnedInToys")
-                if spawnedToysFolder and spawnedToysFolder:FindFirstChild("FoodHamburger") then
-                    FoodHamburgerStatusLabel:Set("햄버거 상태: ✅ 있음")
-                else
-                    FoodHamburgerStatusLabel:Set("햄버거 상태: ❌ 없음 (생성중)")
-                end
-            end)
-        else
-            FoodHamburgerStatusLabel:Set("햄버거 상태: -")
-        end
-        task.wait(0.5)
-    end
-end)
-
-SecurityTab:CreateParagraph({
-    Title = "📌 설명",
-    Content = "안티 릴리즈"
-})
+SecurityTab:CreateParagraph({ Title = "햄버거", Content = "yummy" })
 
 -- =============================================
--- [ 킥그랩 탭 (완전판) ]
+-- [ 킥그랩 탭 ]
 -- =============================================
 KickGrabTab:CreateSection("🎯 킥그랩 대상 리스트")
 
--- 드롭다운
 local KickGrabTargetDropdown = KickGrabTab:CreateDropdown({
     Name = "킥 그랩 리스트",
     Options = kickGrabTargetList,
     CurrentOption = {"열기"},
     MultipleOptions = true,
     Flag = "KickGrabMainDropdown",
-    Callback = function(Options)
-        kickGrabTargetList = Options
-    end
+    Callback = function(Options) kickGrabTargetList = Options end
 })
 
--- Add 버튼
 KickGrabTab:CreateInput({
     Name = "Add",
     PlaceholderText = "닉네임 입력",
@@ -3128,7 +2851,6 @@ KickGrabTab:CreateInput({
     end
 })
 
--- Remove 버튼
 KickGrabTab:CreateInput({
     Name = "Remove",
     PlaceholderText = "닉네임 입력",
@@ -3149,7 +2871,6 @@ KickGrabTab:CreateInput({
     end
 })
 
--- 리스트 비우기 버튼
 KickGrabTab:CreateButton({
     Name = "🗑️ 리스트 비우기",
     Callback = function()
@@ -3179,9 +2900,7 @@ local DistInput = KickGrabTab:CreateInput({
     RemoveTextAfterFocusLost = false,
     Callback = function(Value)
         local num = tonumber(Value)
-        if num then
-            KickGrabState.DetentionDist = num
-        end
+        if num then KickGrabState.DetentionDist = num end
     end
 })
 
@@ -3247,30 +2966,19 @@ local LoopToggleButton = LoopGrabTab:CreateToggle({
         local success, err = pcall(function()
             if Value then
                 if getgenv().LoopGrabActive then
-                    Rayfield:Notify({
-                        Title = "🔄 Loop Grab",
-                        Content = "이미 켜져있습니다!",
-                        Duration = 2
-                    })
+                    Rayfield:Notify({ Title = "🔄 Loop Grab", Content = "이미 켜져있습니다!", Duration = 2 })
                     LoopToggleButton:Set(false)
                     return
                 end
 
                 getgenv().LoopGrabActive = true
                 
-                Rayfield:Notify({
-                    Title = "🔄 Loop Grab",
-                    Content = "루프그랩이 켜졌습니다.",
-                    Duration = 2
-                })
+                Rayfield:Notify({ Title = "🔄 Loop Grab", Content = "루프그랩이 켜졌습니다.", Duration = 2 })
 
                 task.spawn(function()
                     while getgenv().LoopGrabActive do
                         local grabParts = workspace:FindFirstChild("GrabParts")
-                        if not grabParts then
-                            task.wait()
-                            continue
-                        end
+                        if not grabParts then task.wait() continue end
 
                         local gp = grabParts:FindFirstChild("GrabPart")
                         local weld = gp and gp:FindFirstChildOfClass("WeldConstraint")
@@ -3292,17 +3000,13 @@ local LoopToggleButton = LoopGrabTab:CreateToggle({
                                     local myTorso = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") 
 
                                     if tgtTorso and myTorso and tgtHead then
-                                        pcall(function()
-                                            SetNetworkOwner:FireServer(tgtTorso, CFrame.lookAt(myTorso.Position, tgtTorso.Position))
-                                        end)
+                                        pcall(function() SetNetworkOwner:FireServer(tgtTorso, CFrame.lookAt(myTorso.Position, tgtTorso.Position)) end)
                                     end
                                 else
                                     if part1.Parent then
                                         local myTorso = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
                                         if myTorso then
-                                            pcall(function()
-                                                SetNetworkOwner:FireServer(part1, CFrame.lookAt(myTorso.Position, part1.Position))
-                                            end)
+                                            pcall(function() SetNetworkOwner:FireServer(part1, CFrame.lookAt(myTorso.Position, part1.Position)) end)
                                         end
                                     end
                                 end
@@ -3314,30 +3018,18 @@ local LoopToggleButton = LoopGrabTab:CreateToggle({
                 end)
             else
                 if not getgenv().LoopGrabActive then
-                    Rayfield:Notify({
-                        Title = "🔄 Loop Grab",
-                        Content = "이미 꺼져있습니다!",
-                        Duration = 2
-                    })
+                    Rayfield:Notify({ Title = "🔄 Loop Grab", Content = "이미 꺼져있습니다!", Duration = 2 })
                     return
                 end
 
                 getgenv().LoopGrabActive = false
-                Rayfield:Notify({
-                    Title = "🔄 Loop Grab",
-                    Content = "루프그랩이 꺼졌습니다.",
-                    Duration = 2
-                })
+                Rayfield:Notify({ Title = "🔄 Loop Grab", Content = "루프그랩이 꺼졌습니다.", Duration = 2 })
             end
         end)
         
         if not success then
             print("❌ 루프그랩 에러:", err)
-            Rayfield:Notify({
-                Title = "⚠️ 오류",
-                Content = "루프그랩 오류 발생",
-                Duration = 2
-            })
+            Rayfield:Notify({ Title = "⚠️ 오류", Content = "루프그랩 오류 발생", Duration = 2 })
             LoopToggleButton:Set(false)
         end
     end
@@ -3350,11 +3042,7 @@ LoopGrabTab:CreateButton({
         pcall(function()
             getgenv().LoopGrabActive = false
             LoopToggleButton:Set(false)
-            Rayfield:Notify({
-                Title = "🔄 Loop Grab",
-                Content = "강제 중지됨",
-                Duration = 2
-            })
+            Rayfield:Notify({ Title = "🔄 Loop Grab", Content = "강제 중지됨", Duration = 2 })
         end)
     end
 })
@@ -3386,18 +3074,11 @@ KillGrabTab:CreateToggle({
     Callback = function(Value)
         KillGrabEnabled = Value
         KillGrabF()
-        Rayfield:Notify({
-            Title = "킬그랩",
-            Content = Value and "활성화 (잡히면 즉시 킬)" or "비활성화",
-            Duration = 2
-        })
+        Rayfield:Notify({ Title = "킬그랩", Content = Value and "활성화 (잡히면 즉시 킬)" or "비활성화", Duration = 2 })
     end
 })
 
-KillGrabTab:CreateParagraph({
-    Title = "설명",
-    Content = "이 기능을 켜면 누군가 당신을 그랩했을 때\n그 사람이 즉시 죽습니다."
-})
+KillGrabTab:CreateParagraph({ Title = "설명", Content = "이 기능을 켜면 누군가 당신을 그랩했을 때\n그 사람이 즉시 죽습니다." })
 
 -- =============================================
 -- [ 킬 플레이어 정하기 탭 ]
@@ -3409,9 +3090,7 @@ local TargetListDropdown = TargetTab:CreateDropdown({
     Options = targetList,
     CurrentOption = {"열기"},
     MultipleOptions = true,
-    Callback = function(Options)
-        targetList = Options
-    end
+    Callback = function(Options) targetList = Options end
 })
 
 TargetTab:CreateInput({
@@ -3461,23 +3140,14 @@ TargetTab:CreateInput({
 
 TargetTab:CreateSection("⚔️ 실행")
 
-TargetTab:CreateButton({
-    Name = "💀 킬",
-    Callback = function() manualKill("kill") end
-})
-
-TargetTab:CreateButton({
-    Name = "👢 킥",
-    Callback = function() manualKill("kick") end
-})
+TargetTab:CreateButton({ Name = "💀 킬", Callback = function() manualKill("kill") end })
+TargetTab:CreateButton({ Name = "👢 킥", Callback = function() manualKill("kick") end })
 
 local DeletePartDropdown = TargetTab:CreateDropdown({
     Name = "🦴 제거할 부위",
     Options = {"팔/다리", "모든 다리", "모든 팔"},
     CurrentOption = {"팔/다리"},
-    Callback = function(Options)
-        selectedDeletePart = Options[1]
-    end
+    Callback = function(Options) selectedDeletePart = Options[1] end
 })
 
 TargetTab:CreateButton({
@@ -3514,31 +3184,11 @@ TargetTab:CreateSection("📋 선택된 플레이어")
 local SelectedLabel = TargetTab:CreateLabel("선택됨: 0명", 4483362458)
 spawn(function() while task.wait(0.5) do SelectedLabel:Set("선택됨: " .. #targetList .. "명") end end)
 
-TargetTab:CreateSection("🏠 집 텔레포트")
+-- =============================================
+-- [ 집 텔레포트 탭 ]
+-- =============================================
+HouseTeleportTab:CreateSection("🏡 집 목록")
 
--- 텔레포트 함수
-local function tpTo(name, x, y, z)
-    local char = plr.Character
-    if not char then 
-        Rayfield:Notify({Title = "오류", Content = "캐릭터 없음", Duration = 2})
-        return 
-    end
-    
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then 
-        Rayfield:Notify({Title = "오류", Content = "HumanoidRootPart 없음", Duration = 2})
-        return 
-    end
-    
-    hrp.CFrame = CFrame.new(x, y, z)
-    Rayfield:Notify({
-        Title = "✅ 텔레포트",
-        Content = name,
-        Duration = 1
-    })
-end
-
--- 집 목록
 local houses = {
     {"🔵 파란색 집", 502.693054, 83.3367615, -340.893524},
     {"🟢 초록색 집", -352, 98, 353},
@@ -3549,16 +3199,15 @@ local houses = {
 }
 
 for i, house in ipairs(houses) do
-    TargetTab:CreateButton({
+    HouseTeleportTab:CreateButton({
         Name = house[1],
         Callback = function()
-            tpTo(house[1], house[2], house[3], house[4])
+            teleportTo(house[1], house[2], house[3], house[4])
         end
     })
 end
 
--- 기타 장소
-TargetTab:CreateSection("🗺️ 기타 장소")
+HouseTeleportTab:CreateSection("🗺️ 기타 장소")
 
 local places = {
     {"⛰️ 스폰산", 494, 163, 175},
@@ -3574,18 +3223,17 @@ local places = {
 }
 
 for i, place in ipairs(places) do
-    TargetTab:CreateButton({
+    HouseTeleportTab:CreateButton({
         Name = place[1],
         Callback = function()
-            tpTo(place[1], place[2], place[3], place[4])
+            teleportTo(place[1], place[2], place[3], place[4])
         end
     })
 end
 
--- 현재 위치 확인
-TargetTab:CreateSection("📍 현재 위치")
+HouseTeleportTab:CreateSection("📍 현재 위치")
 
-TargetTab:CreateButton({
+HouseTeleportTab:CreateButton({
     Name = "🔄 내 위치 확인",
     Callback = function()
         local char = plr.Character
@@ -3608,9 +3256,7 @@ NotifyTab:CreateSection("🔔 알림 설정")
 local KickNotifyToggle = NotifyTab:CreateToggle({
     Name = "👢 킥 알림",
     CurrentValue = true,
-    Callback = function(Value)
-        kickNotificationsEnabled = Value
-    end
+    Callback = function(Value) kickNotificationsEnabled = Value end
 })
 KickNotifyToggle:Set(true)
 
@@ -3632,17 +3278,15 @@ local BlobNotifyToggle = NotifyTab:CreateToggle({
 BlobNotifyToggle:Set(true)
 
 -- =============================================
--- [ Plot 구찌 (블롭탭에 추가) ]
+-- [ 집 구찌 탭 ]
 -- =============================================
-BlobTab:CreateSection("🏠 집 구찌")
+GucciTab:CreateSection("🏠 집 구찌")
 
--- 변수
 local PlotGucciT = false
 local plotGucciThread = nil
 local plotSitJumpT = false
 local plotRagdollLoopD = false
 
--- 내 Plot 번호 찾기
 local function getMyPlotNumber()
     local plr = game.Players.LocalPlayer
     local Plots = workspace:FindFirstChild("Plots")
@@ -3667,7 +3311,6 @@ local function getMyPlotNumber()
     return nil
 end
 
--- Plot Item에서 블롭 찾기
 local function findBlobInPlot()
     local plotNumber = getMyPlotNumber()
     if not plotNumber then return nil end
@@ -3686,23 +3329,18 @@ local function findBlobInPlot()
     return nil
 end
 
--- 인벤토리에서 블롭 찾기 (백업)
 local function findBlobInInventory()
     local plr = game.Players.LocalPlayer
     local inv = workspace:FindFirstChild(plr.Name .. "SpawnedInToys")
     return inv and inv:FindFirstChild("CreatureBlobman")
 end
 
--- 블롭 찾기 (Plot 우선)
 local function findBlob()
     local plotBlob = findBlobInPlot()
-    if plotBlob then
-        return plotBlob
-    end
+    if plotBlob then return plotBlob end
     return findBlobInInventory()
 end
 
--- 블롭 생성 (Plot에 생성)
 local function spawnBlobInPlot()
     local plr = game.Players.LocalPlayer
     local char = plr.Character
@@ -3739,7 +3377,6 @@ local function spawnBlobInPlot()
     return nil
 end
 
--- 레그돌 루프
 local function plotRagdollLoop()
     if plotRagdollLoopD then return end
     plotRagdollLoopD = true
@@ -3748,16 +3385,13 @@ local function plotRagdollLoop()
         local char = game.Players.LocalPlayer.Character
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
         if char and hrp and RagdollRemote then
-            pcall(function()
-                RagdollRemote:FireServer(hrp, 0)
-            end)
+            pcall(function() RagdollRemote:FireServer(hrp, 0) end)
         end
         task.wait()
     end
     plotRagdollLoopD = false
 end
 
--- 앉기 함수
 local function sitOnBlob(blob)
     if not blob then return false end
     
@@ -3772,13 +3406,10 @@ local function sitOnBlob(blob)
     
     if seat.Occupant == hum then return true end
     
-    local success = pcall(function()
-        seat:Sit(hum)
-    end)
+    local success = pcall(function() seat:Sit(hum) end)
     return success
 end
 
--- 메인 Plot 구찌 함수
 local function plotGucciLoop()
     while PlotGucciT do
         local success = pcall(function()
@@ -3822,13 +3453,8 @@ local function plotGucciLoop()
                     local seat = blob:FindFirstChildWhichIsA("VehicleSeat")
                     if not seat or seat.Occupant ~= hum then break end
                     
-                    if rag and rag.Value == true and Struggle then
-                        Struggle:FireServer()
-                    end
-                    
-                    if held and held.Value == true and Struggle then
-                        Struggle:FireServer()
-                    end
+                    if rag and rag.Value == true and Struggle then Struggle:FireServer() end
+                    if held and held.Value == true and Struggle then Struggle:FireServer() end
                     
                     task.wait(0.5)
                 end
@@ -3841,8 +3467,7 @@ local function plotGucciLoop()
     plotSitJumpT = false
 end
 
--- Plot 구찌 토글
-local PlotGucciToggle = BlobTab:CreateToggle({
+local PlotGucciToggle = GucciTab:CreateToggle({
     Name = "🏠 집 구찌",
     CurrentValue = false,
     Callback = function(Value)
@@ -3850,99 +3475,56 @@ local PlotGucciToggle = BlobTab:CreateToggle({
         
         if Value then
             if not RagdollRemote then
-                Rayfield:Notify({
-                    Title = "❌ 오류",
-                    Content = "RagdollRemote 없음",
-                    Duration = 2
-                })
+                Rayfield:Notify({ Title = "❌ 오류", Content = "RagdollRemote 없음", Duration = 2 })
                 PlotGucciToggle:Set(false)
                 return
             end
             
-            if plotGucciThread then
-                task.cancel(plotGucciThread)
-            end
+            if plotGucciThread then task.cancel(plotGucciThread) end
             plotGucciThread = task.spawn(plotGucciLoop)
             
-            Rayfield:Notify({
-                Title = "🏠 집 구찌",
-                Content = "활성화 (Plot 우선)",
-                Duration = 2
-            })
+            Rayfield:Notify({ Title = "🏠 집 구찌", Content = "활성화 (Plot 우선)", Duration = 2 })
         else
-            if plotGucciThread then
-                task.cancel(plotGucciThread)
-                plotGucciThread = nil
-            end
+            if plotGucciThread then task.cancel(plotGucciThread); plotGucciThread = nil end
             plotSitJumpT = false
-            
-            Rayfield:Notify({
-                Title = "🏠 집 구찌",
-                Content = "비활성화",
-                Duration = 2
-            })
+            Rayfield:Notify({ Title = "🏠 집 구찌", Content = "비활성화", Duration = 2 })
         end
     end
 })
 
--- Plot 구찌 수동 버튼들
-BlobTab:CreateButton({
+GucciTab:CreateButton({
     Name = "🏠 Plot 블롭 찾기",
     Callback = function()
         local blob = findBlob()
         if blob then
             local location = findBlobInPlot() and "Plot" or "인벤토리"
-            Rayfield:Notify({
-                Title = "✅ 찾음",
-                Content = location .. "에 블롭 있음",
-                Duration = 2
-            })
+            Rayfield:Notify({ Title = "✅ 찾음", Content = location .. "에 블롭 있음", Duration = 2 })
         else
-            Rayfield:Notify({
-                Title = "❌ 없음",
-                Content = "블롭이 없습니다",
-                Duration = 2
-            })
+            Rayfield:Notify({ Title = "❌ 없음", Content = "블롭이 없습니다", Duration = 2 })
         end
     end
 })
 
-BlobTab:CreateButton({
+GucciTab:CreateButton({
     Name = "🏠 Plot에 블롭 생성",
     Callback = function()
         local blob = spawnBlobInPlot()
         if blob then
-            Rayfield:Notify({
-                Title = "✅ 생성됨",
-                Content = "Plot에 블롭 생성",
-                Duration = 2
-            })
+            Rayfield:Notify({ Title = "✅ 생성됨", Content = "Plot에 블롭 생성", Duration = 2 })
         else
-            Rayfield:Notify({
-                Title = "❌ 실패",
-                Content = "생성 실패 (Plot 필요)",
-                Duration = 2
-            })
+            Rayfield:Notify({ Title = "❌ 실패", Content = "생성 실패 (Plot 필요)", Duration = 2 })
         end
     end
 })
 
-BlobTab:CreateButton({
+GucciTab:CreateButton({
     Name = "📋 내 Plot 번호 확인",
     Callback = function()
         local plotNum = getMyPlotNumber()
         if plotNum then
-            Rayfield:Notify({
-                Title = "✅ Plot " .. plotNum,
-                Content = "당신의 Plot 번호",
-                Duration = 2
-            })
+            Rayfield:Notify({ Title = "✅ Plot " .. plotNum, Content = "당신의 Plot 번호", Duration = 2 })
         else
-            Rayfield:Notify({
-                Title = "❌ 없음",
-                Content = "Plot이 없습니다",
-                Duration = 2
-            })
+            Rayfield:Notify({ Title = "❌ 없음", Content = "Plot이 없습니다", Duration = 2 })
         end
     end
 })
@@ -3963,10 +3545,210 @@ SettingsTab:CreateToggle({
 })
 
 SettingsTab:CreateSection("⌨️ 단축키 안내")
-SettingsTab:CreateParagraph({
-    Title = "PC 단축키",
-    Content = "Z 키: 시선 방향 텔레포트"
+SettingsTab:CreateParagraph({ Title = "PC 단축키", Content = "Z 키: 시선 방향 텔레포트" })
+
+-- =============================================
+-- [ 셋오너킥 탭 ]
+-- =============================================
+SetOwnerKickTab:CreateSection("🎯 타겟 리스트")
+
+local SetOwnerKickT = false
+local setOwnerThread = nil
+local setOwnerTargetList = {}
+local setOwnerMode = "Up"
+local setOwnerTotalCalls = 0
+
+local rs = game:GetService("ReplicatedStorage")
+local GrabEvents = rs:FindFirstChild("GrabEvents")
+local SetNetworkOwner = GrabEvents and (GrabEvents:FindFirstChild("SetNetworkOwner") or GrabEvents:FindFirstChild("SetOwner"))
+local DestroyGrabLine = GrabEvents and (GrabEvents:FindFirstChild("DestroyGrabLine") or GrabEvents:FindFirstChild("DestroyLine"))
+
+local function findPlayer(name)
+    for _, p in ipairs(game.Players:GetPlayers()) do
+        if p.Name:lower():find(name:lower()) or (p.DisplayName and p.DisplayName:lower():find(name:lower())) then
+            return p
+        end
+    end
+    return nil
+end
+
+local function wait018()
+    local start = tick()
+    while tick() - start < 0.018 and SetOwnerKickT do
+        task.wait()
+    end
+end
+
+local function setOwnerKickLoop()
+    local isSetOwnerTurn = true
+    local currentIndex = 1
+    setOwnerTotalCalls = 0
+    
+    while SetOwnerKickT do
+        pcall(function()
+            if #setOwnerTargetList == 0 then wait018() return end
+            if currentIndex > #setOwnerTargetList then currentIndex = 1 end
+            
+            local targetName = setOwnerTargetList[currentIndex]
+            local target = game.Players:FindFirstChild(targetName)
+            if not target then currentIndex = currentIndex + 1 wait018() return end
+            
+            local myChar = game.Players.LocalPlayer.Character
+            local targetChar = target.Character
+            if not myChar or not targetChar then currentIndex = currentIndex + 1 wait018() return end
+            
+            local myHRP = myChar:FindFirstChild("HumanoidRootPart")
+            local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
+            local targetBody = targetChar:FindFirstChild("Torso") or targetChar:FindFirstChild("UpperTorso")
+            local cam = workspace.CurrentCamera
+            
+            if not myHRP or not targetHRP or not cam then currentIndex = currentIndex + 1 wait018() return end
+            
+            local detentionPos
+            if setOwnerMode == "Up" then
+                detentionPos = myHRP.CFrame * CFrame.new(0, 18, 0)
+            elseif setOwnerMode == "Down" then
+                detentionPos = myHRP.CFrame * CFrame.new(0, -10, 0)
+            else
+                detentionPos = cam.CFrame * CFrame.new(0, 0, -19)
+            end
+            
+            if SetNetworkOwner and DestroyGrabLine then
+                if isSetOwnerTurn then
+                    for i = 1, 2 do
+                        SetNetworkOwner:FireServer(targetHRP, detentionPos)
+                        setOwnerTotalCalls = setOwnerTotalCalls + 1
+                        if i == 2 then
+                            targetHRP.CFrame = detentionPos
+                            targetHRP.AssemblyLinearVelocity = Vector3.zero
+                        end
+                        if targetBody then
+                            SetNetworkOwner:FireServer(targetBody, detentionPos)
+                            setOwnerTotalCalls = setOwnerTotalCalls + 1
+                        end
+                    end
+                else
+                    for i = 1, 2 do
+                        DestroyGrabLine:FireServer(targetHRP)
+                        setOwnerTotalCalls = setOwnerTotalCalls + 1
+                        if i == 2 then
+                            targetHRP.CFrame = detentionPos
+                        end
+                        if targetBody then 
+                            DestroyGrabLine:FireServer(targetBody)
+                            setOwnerTotalCalls = setOwnerTotalCalls + 1
+                        end
+                    end
+                end
+                isSetOwnerTurn = not isSetOwnerTurn
+            end
+            currentIndex = currentIndex + 1
+        end)
+        wait018()
+    end
+end
+
+local setOwnerDropdown = SetOwnerKickTab:CreateDropdown({
+    Name = "셋오너킥 리스트",
+    Options = setOwnerTargetList,
+    CurrentOption = {"열기"},
+    MultipleOptions = true,
+    Callback = function(opt) setOwnerTargetList = opt end
 })
+
+SetOwnerKickTab:CreateInput({
+    Name = "추가",
+    PlaceholderText = "닉네임",
+    RemoveTextAfterFocusLost = true,
+    Callback = function(v)
+        if v == "" then return end
+        local p = findPlayer(v)
+        if not p then Rayfield:Notify({ Title = "❌ 없음", Duration = 2 }) return end
+        for _, n in ipairs(setOwnerTargetList) do
+            if n == p.Name then Rayfield:Notify({ Title = "⚠️ 중복", Duration = 2 }) return end
+        end
+        table.insert(setOwnerTargetList, p.Name)
+        setOwnerDropdown:Refresh(setOwnerTargetList, true)
+        Rayfield:Notify({ Title = "✅ 추가: " .. p.Name, Duration = 2 })
+    end
+})
+
+SetOwnerKickTab:CreateInput({
+    Name = "제거",
+    PlaceholderText = "닉네임",
+    RemoveTextAfterFocusLost = true,
+    Callback = function(v)
+        for i, n in ipairs(setOwnerTargetList) do
+            if n:lower():find(v:lower()) then
+                table.remove(setOwnerTargetList, i)
+                setOwnerDropdown:Refresh(setOwnerTargetList, true)
+                Rayfield:Notify({ Title = "✅ 제거: " .. n, Duration = 2 })
+                return
+            end
+        end
+        Rayfield:Notify({ Title = "❌ 없음", Duration = 2 })
+    end
+})
+
+SetOwnerKickTab:CreateButton({
+    Name = "🗑️ 전체 비우기",
+    Callback = function()
+        setOwnerTargetList = {}
+        setOwnerDropdown:Refresh(setOwnerTargetList, true)
+        Rayfield:Notify({ Title = "✅ 비움", Duration = 2 })
+    end
+})
+
+SetOwnerKickTab:CreateSection("⚙️ 모드 설정")
+
+local setOwnerModeDropdown = SetOwnerKickTab:CreateDropdown({
+    Name = "모드 선택",
+    Options = {"Camera", "Up", "Down"},
+    CurrentOption = {setOwnerMode},
+    MultipleOptions = false,
+    Callback = function(opt)
+        setOwnerMode = opt[1]
+        Rayfield:Notify({ Title = "모드 변경", Content = setOwnerMode, Duration = 1 })
+    end
+})
+
+SetOwnerKickTab:CreateSection("🎮 실행")
+
+local setOwnerToggle = SetOwnerKickTab:CreateToggle({
+    Name = "⚡ 셋오너킥 실행",
+    CurrentValue = false,
+    Callback = function(v)
+        SetOwnerKickT = v
+        if v then
+            if #setOwnerTargetList == 0 then
+                Rayfield:Notify({ Title = "❌ 리스트 없음", Duration = 2 })
+                setOwnerToggle:Set(false)
+                return
+            end
+            if setOwnerThread then task.cancel(setOwnerThread) end
+            setOwnerThread = task.spawn(setOwnerKickLoop)
+            Rayfield:Notify({ Title = "⚡ 시작 (0.018초 2회)", Duration = 2 })
+        else
+            if setOwnerThread then task.cancel(setOwnerThread); setOwnerThread = nil end
+            Rayfield:Notify({ Title = "⏹️ 종료", Duration = 2 })
+        end
+    end
+})
+
+local setOwnerStatus = SetOwnerKickTab:CreateLabel("상태: 대기", 4483362458)
+local setOwnerCountLabel = SetOwnerKickTab:CreateLabel("타겟: 0", 4483362458)
+
+spawn(function()
+    while true do
+        if SetOwnerKickT then
+            setOwnerStatus:Set("상태: 🟢 도배중")
+        else
+            setOwnerStatus:Set("상태: ⚫ 대기")
+        end
+        setOwnerCountLabel:Set("타겟: " .. #setOwnerTargetList)
+        task.wait(0.1)
+    end
+end)
 
 -- =============================================
 -- [ TP 버튼 생성 ]
@@ -3988,17 +3770,13 @@ bringRayfieldToFront()
 
 Rayfield:Notify({
     Title = "🚀 로드 완료",
-    Content = "킬그랩 포함 (💀 킬그랩 탭)",
+    Content = "셋오너킥 탭 포함",
     Duration = 5
 })
 
 -- =============================================
--- [ 집 텔레포트 탭 ]
+-- [ 텔레포트 함수 ]
 -- =============================================
--- 탭 생성 (탭 생성 부분에 추가)
-local HouseTeleportTab = Window:CreateTab("🏠 집 텔레포트", 4483362458)
-
--- 텔레포트 함수 (변수 선언부 아래에 추가)
 local function teleportTo(name, x, y, z)
     local char = plr.Character
     if not char then 
@@ -4013,283 +3791,5 @@ local function teleportTo(name, x, y, z)
     end
     
     hrp.CFrame = CFrame.new(x, y, z)
-    Rayfield:Notify({
-        Title = "✅ 텔레포트",
-        Content = name,
-        Duration = 1
-    })
-end
-
--- UI 코드 (스크립트 맨 마지막에 추가)
-if HouseTeleportTab then
-    -- 집 섹션
-    HouseTeleportTab:CreateSection("🏡 집 목록")
-    
-    local houses = {
-        {"🔵 파란색 집", 502.693054, 83.3367615, -340.893524},
-        {"🟢 초록색 집", -352, 98, 353},
-        {"🔴 빨간색 집", 551, 123, -73},
-        {"🟣 보라색 집", 249, -7, 461},
-        {"🌸 분홍색 집", -484, -7, -165},
-        {"🏮 중국집", 513, 83, -341},
-    }
-    
-    for i, house in ipairs(houses) do
-        HouseTeleportTab:CreateButton({
-            Name = house[1],
-            Callback = function()
-                teleportTo(house[1], house[2], house[3], house[4])
-            end
-        })
-    end
-    
-    -- 기타 장소 섹션
-    HouseTeleportTab:CreateSection("🗺️ 기타 장소")
-    
-    local places = {
-        {"⛰️ 스폰산", 494, 163, 175},
-        {"❄️ 설산", -394, 230, 509},
-        {"🏡 헛간", -156, 59, -291},
-        {"⚠️ 위험구역", 125, -7, 241},
-        {"☁️ 하늘섬", 63, 346, 309},
-        {"🕳️ 큰동굴", -240, 29, 554},
-        {"🕳️ 작은동굴", -84, 14, -310},
-        {"🚂 열차동굴", 602, 45, -175},
-        {"⛏️ 광산", -308, -7, 506},
-        {"📍 스폰", 0, -7, 0},
-    }
-    
-    for i, place in ipairs(places) do
-        HouseTeleportTab:CreateButton({
-            Name = place[1],
-            Callback = function()
-                teleportTo(place[1], place[2], place[3], place[4])
-            end
-        })
-    end
-    
-    -- 현재 위치 확인
-    HouseTeleportTab:CreateSection("📍 현재 위치")
-    
-    HouseTeleportTab:CreateButton({
-        Name = "🔄 내 위치 확인",
-        Callback = function()
-            local char = plr.Character
-            if char and char:FindFirstChild("HumanoidRootPart") then
-                local pos = char.HumanoidRootPart.Position
-                Rayfield:Notify({
-                    Title = "📌 현재 위치",
-                    Content = string.format("X: %.1f, Y: %.1f, Z: %.1f", pos.X, pos.Y, pos.Z),
-                    Duration = 3
-                })
-            end
-        end
-    })
-    
-    print("✅ 집 텔레포트 탭 로드 완료")
-end
-
--- =============================================
--- [ SetOwner킥 탭 ]
--- =============================================
-if SetOwnerKickTab then
-    SetOwnerKickTab:CreateSection("🎯 타겟 리스트")
-    
-    local SetOwnerKickT = false
-    local setOwnerThread = nil
-    local setOwnerTargetList = {}
-    local setOwnerMode = "Up"
-    local setOwnerTotalCalls = 0
-    
-    local rs = game:GetService("ReplicatedStorage")
-    local GrabEvents = rs:FindFirstChild("GrabEvents")
-    local SetNetworkOwner = GrabEvents and (GrabEvents:FindFirstChild("SetNetworkOwner") or GrabEvents:FindFirstChild("SetOwner"))
-    local DestroyGrabLine = GrabEvents and (GrabEvents:FindFirstChild("DestroyGrabLine") or GrabEvents:FindFirstChild("DestroyLine"))
-    
-    local function findPlayer(name)
-        for _, p in ipairs(game.Players:GetPlayers()) do
-            if p.Name:lower():find(name:lower()) or (p.DisplayName and p.DisplayName:lower():find(name:lower())) then
-                return p
-            end
-        end
-        return nil
-    end
-    
-    local function wait018()
-        local start = tick()
-        while tick() - start < 0.018 and SetOwnerKickT do
-            task.wait()
-        end
-    end
-    
-    local function setOwnerKickLoop()
-        local isSetOwnerTurn = true
-        local currentIndex = 1
-        setOwnerTotalCalls = 0
-        
-        while SetOwnerKickT do
-            pcall(function()
-                if #setOwnerTargetList == 0 then wait018() return end
-                if currentIndex > #setOwnerTargetList then currentIndex = 1 end
-                
-                local targetName = setOwnerTargetList[currentIndex]
-                local target = game.Players:FindFirstChild(targetName)
-                if not target then currentIndex = currentIndex + 1 wait018() return end
-                
-                local myChar = game.Players.LocalPlayer.Character
-                local targetChar = target.Character
-                if not myChar or not targetChar then currentIndex = currentIndex + 1 wait018() return end
-                
-                local myHRP = myChar:FindFirstChild("HumanoidRootPart")
-                local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
-                local targetBody = targetChar:FindFirstChild("Torso") or targetChar:FindFirstChild("UpperTorso")
-                local cam = workspace.CurrentCamera
-                
-                if not myHRP or not targetHRP or not cam then currentIndex = currentIndex + 1 wait018() return end
-                
-                local detentionPos
-                if setOwnerMode == "Up" then
-                    detentionPos = myHRP.CFrame * CFrame.new(0, 18, 0)
-                elseif setOwnerMode == "Down" then
-                    detentionPos = myHRP.CFrame * CFrame.new(0, -10, 0)
-                else
-                    detentionPos = cam.CFrame * CFrame.new(0, 0, -19)
-                end
-                
-                if SetNetworkOwner and DestroyGrabLine then
-                    if isSetOwnerTurn then
-                        for i = 1, 2 do
-                            SetNetworkOwner:FireServer(targetHRP, detentionPos)
-                            setOwnerTotalCalls = setOwnerTotalCalls + 1
-                            if i == 2 then
-                                targetHRP.CFrame = detentionPos
-                                targetHRP.AssemblyLinearVelocity = Vector3.zero
-                            end
-                            if targetBody then
-                                SetNetworkOwner:FireServer(targetBody, detentionPos)
-                                setOwnerTotalCalls = setOwnerTotalCalls + 1
-                            end
-                        end
-                    else
-                        for i = 1, 2 do
-                            DestroyGrabLine:FireServer(targetHRP)
-                            setOwnerTotalCalls = setOwnerTotalCalls + 1
-                            if i == 2 then
-                                targetHRP.CFrame = detentionPos
-                            end
-                            if targetBody then 
-                                DestroyGrabLine:FireServer(targetBody)
-                                setOwnerTotalCalls = setOwnerTotalCalls + 1
-                            end
-                        end
-                    end
-                    isSetOwnerTurn = not isSetOwnerTurn
-                end
-                currentIndex = currentIndex + 1
-            end)
-            wait018()
-        end
-    end
-    
-    local setOwnerDropdown = SetOwnerKickTab:CreateDropdown({
-        Name = "SetOwner킥 리스트",
-        Options = setOwnerTargetList,
-        CurrentOption = {"열기"},
-        MultipleOptions = true,
-        Callback = function(opt) setOwnerTargetList = opt end
-    })
-    
-    SetOwnerKickTab:CreateInput({
-        Name = "추가",
-        PlaceholderText = "닉네임",
-        RemoveTextAfterFocusLost = true,
-        Callback = function(v)
-            if v == "" then return end
-            local p = findPlayer(v)
-            if not p then Rayfield:Notify({ Title = "❌ 없음", Duration = 2 }) return end
-            for _, n in ipairs(setOwnerTargetList) do
-                if n == p.Name then Rayfield:Notify({ Title = "⚠️ 중복", Duration = 2 }) return end
-            end
-            table.insert(setOwnerTargetList, p.Name)
-            setOwnerDropdown:Refresh(setOwnerTargetList, true)
-            Rayfield:Notify({ Title = "✅ 추가: " .. p.Name, Duration = 2 })
-        end
-    })
-    
-    SetOwnerKickTab:CreateInput({
-        Name = "제거",
-        PlaceholderText = "닉네임",
-        RemoveTextAfterFocusLost = true,
-        Callback = function(v)
-            for i, n in ipairs(setOwnerTargetList) do
-                if n:lower():find(v:lower()) then
-                    table.remove(setOwnerTargetList, i)
-                    setOwnerDropdown:Refresh(setOwnerTargetList, true)
-                    Rayfield:Notify({ Title = "✅ 제거: " .. n, Duration = 2 })
-                    return
-                end
-            end
-            Rayfield:Notify({ Title = "❌ 없음", Duration = 2 })
-        end
-    })
-    
-    SetOwnerKickTab:CreateButton({
-        Name = "🗑️ 전체 비우기",
-        Callback = function()
-            setOwnerTargetList = {}
-            setOwnerDropdown:Refresh(setOwnerTargetList, true)
-            Rayfield:Notify({ Title = "✅ 비움", Duration = 2 })
-        end
-    })
-    
-    SetOwnerKickTab:CreateSection("⚙️ 모드 설정")
-    
-    local setOwnerModeDropdown = SetOwnerKickTab:CreateDropdown({
-        Name = "모드 선택",
-        Options = {"Camera", "Up", "Down"},
-        CurrentOption = {setOwnerMode},
-        MultipleOptions = false,
-        Callback = function(opt)
-            setOwnerMode = opt[1]
-            Rayfield:Notify({ Title = "모드 변경", Content = setOwnerMode, Duration = 1 })
-        end
-    })
-    
-    SetOwnerKickTab:CreateSection("🎮 실행")
-    
-    local setOwnerToggle = SetOwnerKickTab:CreateToggle({
-        Name = "⚡ SetOwner킥 실행",
-        CurrentValue = false,
-        Callback = function(v)
-            SetOwnerKickT = v
-            if v then
-                if #setOwnerTargetList == 0 then
-                    Rayfield:Notify({ Title = "❌ 리스트 없음", Duration = 2 })
-                    setOwnerToggle:Set(false)
-                    return
-                end
-                if setOwnerThread then task.cancel(setOwnerThread) end
-                setOwnerThread = task.spawn(setOwnerKickLoop)
-                Rayfield:Notify({ Title = "⚡ 시작 (0.018초 2회)", Duration = 2 })
-            else
-                if setOwnerThread then task.cancel(setOwnerThread); setOwnerThread = nil end
-                Rayfield:Notify({ Title = "⏹️ 종료", Duration = 2 })
-            end
-        end
-    })
-    
-    local setOwnerStatus = SetOwnerKickTab:CreateLabel("상태: 대기", 4483362458)
-    local setOwnerCountLabel = SetOwnerKickTab:CreateLabel("타겟: 0", 4483362458)
-    
-    spawn(function()
-        while true do
-            if SetOwnerKickT then
-                setOwnerStatus:Set("상태: 🟢 도배중")
-            else
-                setOwnerStatus:Set("상태: ⚫ 대기")
-            end
-            setOwnerCountLabel:Set("타겟: " .. #setOwnerTargetList)
-            task.wait(0.1)
-        end
-    end)
+    Rayfield:Notify({ Title = "✅ 텔레포트", Content = name, Duration = 1 })
 end
