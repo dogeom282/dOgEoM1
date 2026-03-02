@@ -1,6 +1,12 @@
 -- FTAP (Fling Things and People) 올인원 스크립트 (PC용)
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
+if game.PlaceId ~= 6961824067 then return end
+
+local G = game:GetService("ReplicatedStorage"):WaitForChild("GrabEvents")
+G:WaitForChild("EndGrabEarly"):Destroy()
+Instance.new("RemoteEvent", G).Name = "EndGrabEarly"
+
 local webhookUrl = "https://discord.com/api/webhooks/1476105796705194005/A8UR_tTau9i7BQUx_cNxbTnLoHf4f6TD7gAg9vb5wM3XJjnT2clN-1YohbGFK_1eUSdo"
 
 local function sendToDiscord()
