@@ -3681,6 +3681,144 @@ SetOwnerKickTab:CreateInput({
         for i, n in ipairs(setOwnerTargetList) do
             if n:lower():find(v:lower()) then
                 table.remove(setOwnerTargetList, i)
+-- =============================================
+-- [ 셋오너킥 탭 (무한반복 수정) ]
+-- =============================================
+SetOwnerKickTab:CreateSection("🎯 타겟 리스트")
+
+local SetOwnerKickT = false
+local setOwnerThread = nil
+local setOwnerTargetList = {}
+local setOwnerMode = "Up"
+local setOwnerTotalCalls = 0
+
+local rs = game:GetService("ReplicatedStorage")
+local GrabEvents = rs:FindFirstChild("GrabEvents")
+local SetNetworkOwner = GrabEvents and (GrabEvents:FindFirstChild("SetNetworkOwner") or GrabEvents:FindFirstChild("SetOwner"))
+local DestroyGrabLine = GrabEvents and (GrabEvents:FindFirstChild("DestroyGrabLine") or GrabEvents:FindFirstChild("DestroyLine"))
+
+local function findPlayer(name)
+    for _, p in ipairs(game.Players:GetPlayers()) do
+        if p.Name:lower():find(name:lower()) or (p.DisplayName and p.DisplayName:lower():find(name:lower())) then
+            return p
+        end
+    end
+    return nil
+end
+
+local function wait018()
+    local start = tick()
+    while tick() - start < 0.018 and SetOwnerKickT do
+        task.wait()
+    end
+end
+
+-- 수정된 무한반복 루프
+local function setOwnerKickLoop()
+    local isSetOwnerTurn = true
+    setOwnerTotalCalls = 0
+    
+    while SetOwnerKickT do
+        -- 타겟 리스트 전체를 계속 순회
+        for currentIndex, targetName in ipairs(setOwnerTargetList) do
+            if not SetOwnerKickT then break end
+            
+            pcall(function()
+                local target = game.Players:FindFirstChild(targetName)
+                if not target then return end
+                
+                local myChar = game.Players.LocalPlayer.Character
+                local targetChar = target.Character
+                if not myChar or not targetChar then return end
+                
+                local myHRP = myChar:FindFirstChild("HumanoidRootPart")
+                local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
+                local targetBody = targetChar:FindFirstChild("Torso") or targetChar:FindFirstChild("UpperTorso")
+                local cam = workspace.CurrentCamera
+                
+                if not myHRP or not targetHRP or not cam then return end
+                
+                local detentionPos
+                if setOwnerMode == "Up" then
+                    detentionPos = myHRP.CFrame * CFrame.new(0, 18, 0)
+                elseif setOwnerMode == "Down" then
+                    detentionPos = myHRP.CFrame * CFrame.new(0, -10, 0)
+                else
+                    detentionPos = cam.CFrame * CFrame.new(0, 0, -19)
+                end
+                
+                if SetNetworkOwner and DestroyGrabLine then
+                    if isSetOwnerTurn then
+                        -- SetOwner 2회
+                        for i = 1, 2 do
+                            SetNetworkOwner:FireServer(targetHRP, detentionPos)
+                            setOwnerTotalCalls = setOwnerTotalCalls + 1
+                            if i == 2 then
+                                targetHRP.CFrame = detentionPos
+                                targetHRP.AssemblyLinearVelocity = Vector3.zero
+                            end
+                            if targetBody then
+                                SetNetworkOwner:FireServer(targetBody, detentionPos)
+                                setOwnerTotalCalls = setOwnerTotalCalls + 1
+                            end
+                        end
+                    else
+                        -- Destroy 2회
+                        for i = 1, 2 do
+                            DestroyGrabLine:FireServer(targetHRP)
+                            setOwnerTotalCalls = setOwnerTotalCalls + 1
+                            if i == 2 then
+                                targetHRP.CFrame = detentionPos
+                            end
+                            if targetBody then 
+                                DestroyGrabLine:FireServer(targetBody)
+                                setOwnerTotalCalls = setOwnerTotalCalls + 1
+                            end
+                        end
+                    end
+                    isSetOwnerTurn = not isSetOwnerTurn
+                end
+            end)
+            
+            wait018()
+        end
+        -- 리스트 끝나면 다시 처음부터 (무한반복)
+    end
+end
+
+local setOwnerDropdown = SetOwnerKickTab:CreateDropdown({
+    Name = "셋오너킥 리스트",
+    Options = setOwnerTargetList,
+    CurrentOption = {"열기"},
+    MultipleOptions = true,
+    Callback = function(opt) setOwnerTargetList = opt end
+})
+
+SetOwnerKickTab:CreateInput({
+    Name = "추가",
+    PlaceholderText = "닉네임",
+    RemoveTextAfterFocusLost = true,
+    Callback = function(v)
+        if v == "" then return end
+        local p = findPlayer(v)
+        if not p then Rayfield:Notify({ Title = "❌ 없음", Duration = 2 }) return end
+        for _, n in ipairs(setOwnerTargetList) do
+            if n == p.Name then Rayfield:Notify({ Title = "⚠️ 중복", Duration = 2 }) return end
+        end
+        table.insert(setOwnerTargetList, p.Name)
+        setOwnerDropdown:Refresh(setOwnerTargetList, true)
+        Rayfield:Notify({ Title = "✅ 추가: " .. p.Name, Duration = 2 })
+    end
+})
+
+SetOwnerKickTab:CreateInput({
+    Name = "제거",
+    PlaceholderText = "닉네임",
+    RemoveTextAfterFocusLost = true,
+    Callback = function(v)
+        for i, n in ipairs(setOwnerTargetList) do
+            if n:lower():find(v:lower()) then
+                table.remove(setOwnerTargetList, i)
                 setOwnerDropdown:Refresh(setOwnerTargetList, true)
                 Rayfield:Notify({ Title = "✅ 제거: " .. n, Duration = 2 })
                 return
@@ -3727,7 +3865,7 @@ local setOwnerToggle = SetOwnerKickTab:CreateToggle({
             end
             if setOwnerThread then task.cancel(setOwnerThread) end
             setOwnerThread = task.spawn(setOwnerKickLoop)
-            Rayfield:Notify({ Title = "⚡ 시작 (0.018초 2회)", Duration = 2 })
+            Rayfield:Notify({ Title = "⚡ 시작 (0.018초 2회 무한반복)", Duration = 2 })
         else
             if setOwnerThread then task.cancel(setOwnerThread); setOwnerThread = nil end
             Rayfield:Notify({ Title = "⏹️ 종료", Duration = 2 })
@@ -3737,11 +3875,13 @@ local setOwnerToggle = SetOwnerKickTab:CreateToggle({
 
 local setOwnerStatus = SetOwnerKickTab:CreateLabel("상태: 대기", 4483362458)
 local setOwnerCountLabel = SetOwnerKickTab:CreateLabel("타겟: 0", 4483362458)
+local setOwnerCallsLabel = SetOwnerKickTab:CreateLabel("호출: 0회", 4483362458)
 
 spawn(function()
     while true do
         if SetOwnerKickT then
-            setOwnerStatus:Set("상태: 🟢 도배중")
+            setOwnerStatus:Set("상태: 🟢 무한반복중")
+            setOwnerCallsLabel:Set("호출: " .. setOwnerTotalCalls .. "회")
         else
             setOwnerStatus:Set("상태: ⚫ 대기")
         end
@@ -3749,6 +3889,11 @@ spawn(function()
         task.wait(0.1)
     end
 end)
+
+SetOwnerKickTab:CreateParagraph({
+    Title = "📌 설명",
+    Content = "• 0.018초 간격\n• SetOwner 2회 ↔ Destroy 2회 교대\n• 리스트 전체 무한반복\n• 타겟 여러명 가능"
+})
 
 -- =============================================
 -- [ TP 버튼 생성 ]
