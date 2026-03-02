@@ -2774,12 +2774,12 @@ local AntiPaintToggle = SecurityTab:CreateToggle({
 -- =============================================
 SecurityTab:CreateSection("안티 릴리즈")
 
-local DonutMacroT = false
-local donutMacroThread = nil
-local donutSpawnThread = nil
+local FoodHamburgerMacroT = false
+local FoodHamburgerMacroThread = nil
+local FoodHamburgerSpawnThread = nil
 
 -- 도넛 매크로 함수
-local function startDonutMacro()
+local function startFoodHamburgerMacro()
     -- 변수 설정
     local Players = game:GetService("Players")
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -2792,15 +2792,15 @@ local function startDonutMacro()
     local spawnedToysFolder = Workspace:WaitForChild(player.Name .. "SpawnedInToys")
     
     -- 도넛 생성 스레드
-    donutSpawnThread = task.spawn(function()
-        while DonutMacroT do
-            local currentDonut = spawnedToysFolder:FindFirstChild("FoodDonut")
+    FoodHamburgerSpawnThread = task.spawn(function()
+        while FoodHamburgerMacroT do
+            local currentDonut = spawnedToysFolder:FindFirstChild("FoodHamburger")
             if not currentDonut then
                 local spawnOffset = CFrame.new(-3.53, 0, 3.53)
                 local spawnCFrame = rootPart.CFrame * spawnOffset
                 
                 local spawnArgs = {
-                    [1] = "FoodDonut",
+                    [1] = "FoodHamburger",
                     [2] = spawnCFrame,
                     [3] = Vector3.new(0, 140, 0)
                 }
@@ -2816,12 +2816,12 @@ local function startDonutMacro()
     end)
     
     -- 도넛 잡기/놓기 스레드
-    donutMacroThread = task.spawn(function()
-        while DonutMacroT do
-            local currentDonut = spawnedToysFolder:FindFirstChild("FoodDonut")
+    FoodHamburgerMacroThread = task.spawn(function()
+        while FoodHamburgerMacroT do
+            local currentFoodHamburger = spawnedToysFolder:FindFirstChild("FoodHamburger")
             
-            if currentDonut then
-                local holdPart = currentDonut:FindFirstChild("HoldPart")
+            if currentFoodHamburger then
+                local holdPart = currentFoodHamburger:FindFirstChild("HoldPart")
                 if holdPart then
                     local holdRemote = holdPart:FindFirstChild("HoldItemRemoteFunction")
                     local dropRemote = holdPart:FindFirstChild("DropItemRemoteFunction")
@@ -2830,12 +2830,12 @@ local function startDonutMacro()
                         -- 잡기
                         task.spawn(function()
                             pcall(function()
-                                holdRemote:InvokeServer(currentDonut, character)
+                                holdRemote:InvokeServer(currentFoodHamburger, character)
                             end)
                         end)
                         
                         task.wait(0.018)
-                        if not DonutMacroT then break end
+                        if not FoodHamburgerMacroT then break end
                         
                         -- 놓기 (Y=99999)
                         task.spawn(function()
@@ -2858,17 +2858,17 @@ local function startDonutMacro()
 end
 
 -- 도넛 매크로 중지 함수
-local function stopDonutMacro()
-    DonutMacroT = false
+local function stopFoodHamburgerMacro()
+    FoodHamburgerMacroT = false
     
     if donutSpawnThread then
-        task.cancel(donutSpawnThread)
-        donutSpawnThread = nil
+        task.cancel(FoodHamburgerSpawnThread)
+        FoodHamburgerSpawnThread = nil
     end
     
-    if donutMacroThread then
-        task.cancel(donutMacroThread)
-        donutMacroThread = nil
+    if FoodHamburgerMacroThread then
+        task.cancel(FoodHamburgerMacroThread)
+        FoodHamburgerMacroThread = nil
     end
     
     -- 마지막 도넛 제거
@@ -2876,16 +2876,16 @@ local function stopDonutMacro()
         local player = game.Players.LocalPlayer
         local spawnedToysFolder = workspace:FindFirstChild(player.Name .. "SpawnedInToys")
         if spawnedToysFolder then
-            local donut = spawnedToysFolder:FindFirstChild("FoodDonut")
+            local FoodHamburger = spawnedToysFolder:FindFirstChild("FoodHamburger")
             if donut then
-                ReplicatedStorage:WaitForChild("MenuToys"):WaitForChild("DestroyToy"):FireServer(donut)
+                ReplicatedStorage:WaitForChild("MenuToys"):WaitForChild("DestroyToy"):FireServer(FoodHamburger)
             end
         end
     end)
 end
 
 -- 도넛 매크로 토글
-local DonutMacroToggle = SecurityTab:CreateToggle({
+local FoodHamburgerMacroToggle = SecurityTab:CreateToggle({
     Name = "안티 릴리즈",
     CurrentValue = false,
     Callback = function(Value)
@@ -2893,7 +2893,7 @@ local DonutMacroToggle = SecurityTab:CreateToggle({
         
         if Value then
             -- 시작
-            startDonutMacro()
+            startFoodHamburgerMacro()
             
             Rayfield:Notify({
                 Title = "안티 릴리즈",
@@ -2902,7 +2902,7 @@ local DonutMacroToggle = SecurityTab:CreateToggle({
             })
         else
             -- 중지
-            stopDonutMacro()
+            stopFoodHamburgerMacro()
             
             Rayfield:Notify({
                 Title = "안티 릴리즈",
@@ -2914,23 +2914,23 @@ local DonutMacroToggle = SecurityTab:CreateToggle({
 })
 
 -- 상태 표시
-local donutStatusLabel = SecurityTab:CreateLabel("도넛 상태: -", 4483362458)
+local FoodHamburgerStatusLabel = SecurityTab:CreateLabel("햄버거 상태: -", 4483362458)
 
 -- 실시간 업데이트
 spawn(function()
     while true do
-        if DonutMacroT then
+        if FoodHamburgerMacroT then
             pcall(function()
                 local player = game.Players.LocalPlayer
                 local spawnedToysFolder = workspace:FindFirstChild(player.Name .. "SpawnedInToys")
-                if spawnedToysFolder and spawnedToysFolder:FindFirstChild("FoodDonut") then
-                    donutStatusLabel:Set("도넛 상태: ✅ 있음")
+                if spawnedToysFolder and spawnedToysFolder:FindFirstChild("FoodHamburger") then
+                    FoodHamburgerStatusLabel:Set("햄버거 상태: ✅ 있음")
                 else
-                    donutStatusLabel:Set("도넛 상태: ❌ 없음 (생성중)")
+                    FoodHamburgerStatusLabel:Set("햄버거 상태: ❌ 없음 (생성중)")
                 end
             end)
         else
-            donutStatusLabel:Set("도넛 상태: -")
+            FoodHamburgerStatusLabel:Set("햄버거 상태: -")
         end
         task.wait(0.5)
     end
