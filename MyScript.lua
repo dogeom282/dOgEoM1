@@ -3547,8 +3547,9 @@ SettingsTab:CreateToggle({
 SettingsTab:CreateSection("⌨️ 단축키 안내")
 SettingsTab:CreateParagraph({ Title = "PC 단축키", Content = "Z 키: 시선 방향 텔레포트" })
 
+
 -- =============================================
--- [ 셋오너킥 탭 (3회/3회) ]
+-- [ 셋오너킥 탭 (4회/4회) ]
 -- =============================================
 if SetOwnerKickTab then
     pcall(function()
@@ -3645,11 +3646,11 @@ if SetOwnerKickTab then
                         
                         if SetNetworkOwner and DestroyGrabLine then
                             if isSetOwnerTurn then
-                                -- SetOwner 3회
-                                for i = 1, 3 do
+                                -- SetOwner 4회
+                                for i = 1, 4 do
                                     SetNetworkOwner:FireServer(targetHRP, detentionPos)
                                     setOwnerTotalCalls = setOwnerTotalCalls + 1
-                                    if i == 3 then
+                                    if i == 4 then
                                         targetHRP.CFrame = detentionPos
                                         targetHRP.AssemblyLinearVelocity = Vector3.zero
                                     end
@@ -3659,11 +3660,11 @@ if SetOwnerKickTab then
                                     end
                                 end
                             else
-                                -- Destroy 3회
-                                for i = 1, 3 do
+                                -- Destroy 4회
+                                for i = 1, 4 do
                                     DestroyGrabLine:FireServer(targetHRP)
                                     setOwnerTotalCalls = setOwnerTotalCalls + 1
-                                    if i == 3 then
+                                    if i == 4 then
                                         targetHRP.CFrame = detentionPos
                                     end
                                     if targetBody then 
@@ -3753,7 +3754,7 @@ if SetOwnerKickTab then
         SetOwnerKickTab:CreateSection("🎮 실행")
         
         local setOwnerToggle = SetOwnerKickTab:CreateToggle({
-            Name = "⚡ 셋오너킥 3:3 실행",
+            Name = "⚡ 셋오너킥 4:4 실행",
             CurrentValue = false,
             Callback = function(v)
                 SetOwnerKickT = v
@@ -3765,7 +3766,7 @@ if SetOwnerKickTab then
                     end
                     if setOwnerThread then task.cancel(setOwnerThread) end
                     setOwnerThread = task.spawn(setOwnerKickLoop)
-                    Rayfield:Notify({ Title = "⚡ 시작 (3Set/3Destroy)", Duration = 2 })
+                    Rayfield:Notify({ Title = "⚡ 시작 (4Set/4Destroy)", Duration = 2 })
                 else
                     if setOwnerThread then task.cancel(setOwnerThread); setOwnerThread = nil end
                     Rayfield:Notify({ Title = "⏹️ 종료", Duration = 2 })
@@ -3780,7 +3781,7 @@ if SetOwnerKickTab then
         spawn(function()
             while true do
                 if SetOwnerKickT then
-                    setOwnerStatus:Set("상태: 🟢 3:3 도배중")
+                    setOwnerStatus:Set("상태: 🟢 4:4 도배중")
                     setOwnerCallsLabel:Set("호출: " .. setOwnerTotalCalls .. "회")
                 else
                     setOwnerStatus:Set("상태: ⚫ 대기")
@@ -3792,7 +3793,7 @@ if SetOwnerKickTab then
         
         SetOwnerKickTab:CreateParagraph({
             Title = "📌 스펙",
-            Content = "• SetOwner 3회 → Destroy 3회 교대\n• 0.018초 간격\n• 30스터드 이상 자동 TP\n• 초당 약 333회 호출"
+            Content = "• SetOwner 4회 → Destroy 4회 교대\n• 0.018초 간격\n• 30스터드 이상 자동 TP\n• 초당 약 444회 호출"
         })
     end)
                         end
