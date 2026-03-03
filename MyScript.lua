@@ -3799,18 +3799,18 @@ if SetOwnerKickTab then
                         end
 
 -- =============================================
--- [ 개빠른 실험용 프레임 교대 ]
+-- [ 초광속 프레임 교대 (프레임당 50회) ]
 -- =============================================
 if SetOwnerKickTab then
     pcall(function()
-        SetOwnerKickTab:CreateSection("⚡ 개빠른 프레임 교대")
+        SetOwnerKickTab:CreateSection("💥 초광속 프레임 교대")
         
-        local FastKickT = false
-        local fastThread = nil
-        local fastTargetList = {}
-        local fastIsSetOwner = true
-        local fastTotalCalls = 0
-        local fastFrameCount = 0
+        local UltraKickT = false
+        local ultraThread = nil
+        local ultraTargetList = {}
+        local ultraIsSetOwner = true
+        local ultraTotalCalls = 0
+        local ultraFrameCount = 0
         
         local rs = game:GetService("ReplicatedStorage")
         local GrabEvents = rs:FindFirstChild("GrabEvents")
@@ -3826,25 +3826,25 @@ if SetOwnerKickTab then
             return nil
         end
         
-        -- 프레임마다 10번씩 실행
-        local function fastFrameLoop()
-            fastIsSetOwner = true
-            fastTotalCalls = 0
-            fastFrameCount = 0
+        -- 프레임마다 50번씩 실행
+        local function ultraFrameLoop()
+            ultraIsSetOwner = true
+            ultraTotalCalls = 0
+            ultraFrameCount = 0
             
             local connection = game:GetService("RunService").RenderStepped:Connect(function()
-                if not FastKickT then
+                if not UltraKickT then
                     connection:Disconnect()
                     return
                 end
                 
-                fastFrameCount = fastFrameCount + 1
+                ultraFrameCount = ultraFrameCount + 1
                 
-                if #fastTargetList == 0 then return end
+                if #ultraTargetList == 0 then return end
                 
-                -- 한 프레임에 10번 실행
-                for rep = 1, 10 do
-                    local targetName = fastTargetList[(fastFrameCount * rep) % #fastTargetList + 1]
+                -- 한 프레임에 50번 실행
+                for rep = 1, 50 do
+                    local targetName = ultraTargetList[(ultraFrameCount * rep) % #ultraTargetList + 1]
                     local target = game.Players:FindFirstChild(targetName)
                     if not target then break end
                     
@@ -3860,41 +3860,41 @@ if SetOwnerKickTab then
                     
                     local detentionPos = cam.CFrame * CFrame.new(0, 0, -19)
                     
-                    if fastIsSetOwner then
-                        -- SetOwner 5번
-                        for i = 1, 5 do
+                    if ultraIsSetOwner then
+                        -- SetOwner 25번
+                        for i = 1, 25 do
                             if SetNetworkOwner then
                                 SetNetworkOwner:FireServer(targetHRP, detentionPos)
-                                fastTotalCalls = fastTotalCalls + 1
+                                ultraTotalCalls = ultraTotalCalls + 1
                             end
                         end
                     else
-                        -- Destroy 5번
-                        for i = 1, 5 do
+                        -- Destroy 25번
+                        for i = 1, 25 do
                             if DestroyGrabLine then
                                 DestroyGrabLine:FireServer(targetHRP)
-                                fastTotalCalls = fastTotalCalls + 1
+                                ultraTotalCalls = ultraTotalCalls + 1
                             end
                         end
                     end
                     
-                    fastIsSetOwner = not fastIsSetOwner
+                    ultraIsSetOwner = not ultraIsSetOwner
                 end
             end)
             
-            fastThread = connection
+            ultraThread = connection
         end
         
-        local fastDropdown = SetOwnerKickTab:CreateDropdown({
-            Name = "빠른 타겟",
-            Options = fastTargetList,
+        local ultraDropdown = SetOwnerKickTab:CreateDropdown({
+            Name = "초광속 타겟",
+            Options = ultraTargetList,
             CurrentOption = {"열기"},
             MultipleOptions = true,
-            Callback = function(opt) fastTargetList = opt end
+            Callback = function(opt) ultraTargetList = opt end
         })
         
         SetOwnerKickTab:CreateInput({
-            Name = "빠른 추가",
+            Name = "초광속 추가",
             PlaceholderText = "닉네임",
             RemoveTextAfterFocusLost = true,
             Callback = function(v)
@@ -3904,27 +3904,27 @@ if SetOwnerKickTab then
                     Rayfield:Notify({ Title = "❌ 없음", Duration = 2 }) 
                     return 
                 end
-                for _, n in ipairs(fastTargetList) do
+                for _, n in ipairs(ultraTargetList) do
                     if n == p.Name then 
                         Rayfield:Notify({ Title = "⚠️ 중복", Duration = 2 }) 
                         return 
                     end
                 end
-                table.insert(fastTargetList, p.Name)
-                fastDropdown:Refresh(fastTargetList, true)
+                table.insert(ultraTargetList, p.Name)
+                ultraDropdown:Refresh(ultraTargetList, true)
                 Rayfield:Notify({ Title = "✅ 추가: " .. p.Name, Duration = 2 })
             end
         })
         
         SetOwnerKickTab:CreateInput({
-            Name = "빠른 제거",
+            Name = "초광속 제거",
             PlaceholderText = "닉네임",
             RemoveTextAfterFocusLost = true,
             Callback = function(v)
-                for i, n in ipairs(fastTargetList) do
+                for i, n in ipairs(ultraTargetList) do
                     if n:lower():find(v:lower()) then
-                        table.remove(fastTargetList, i)
-                        fastDropdown:Refresh(fastTargetList, true)
+                        table.remove(ultraTargetList, i)
+                        ultraDropdown:Refresh(ultraTargetList, true)
                         Rayfield:Notify({ Title = "✅ 제거: " .. n, Duration = 2 })
                         return
                     end
@@ -3933,36 +3933,36 @@ if SetOwnerKickTab then
             end
         })
         
-        local fastToggle = SetOwnerKickTab:CreateToggle({
-            Name = "⚡ 개빠른 실험",
+        local ultraToggle = SetOwnerKickTab:CreateToggle({
+            Name = "💥 초광속 실험",
             CurrentValue = false,
             Callback = function(v)
-                FastKickT = v
+                UltraKickT = v
                 if v then
-                    if #fastTargetList == 0 then
+                    if #ultraTargetList == 0 then
                         Rayfield:Notify({ Title = "❌ 타겟 없음", Duration = 2 })
-                        fastToggle:Set(false)
+                        ultraToggle:Set(false)
                         return
                     end
-                    if fastThread and fastThread.Disconnect then
-                        fastThread:Disconnect()
+                    if ultraThread and ultraThread.Disconnect then
+                        ultraThread:Disconnect()
                     end
-                    fastFrameLoop()
-                    Rayfield:Notify({ Title = "⚡ 시작 (프레임당 10회)", Duration = 2 })
+                    ultraFrameLoop()
+                    Rayfield:Notify({ Title = "💥 시작 (프레임당 50회)", Duration = 2 })
                 else
-                    if fastThread and fastThread.Disconnect then
-                        fastThread:Disconnect()
-                        fastThread = nil
+                    if ultraThread and ultraThread.Disconnect then
+                        ultraThread:Disconnect()
+                        ultraThread = nil
                     end
                     Rayfield:Notify({ Title = "⏹️ 종료", Duration = 2 })
                 end
             end
         })
         
-        local fastStatus = SetOwnerKickTab:CreateLabel("상태: 대기", 4483362458)
-        local fastAction = SetOwnerKickTab:CreateLabel("동작: SetOwner 5회", 4483362458)
-        local fastCount = SetOwnerKickTab:CreateLabel("호출: 0", 4483362458)
-        local fastSpeed = SetOwnerKickTab:CreateLabel("속도: 0회/초", 4483362458)
+        local ultraStatus = SetOwnerKickTab:CreateLabel("상태: 대기", 4483362458)
+        local ultraAction = SetOwnerKickTab:CreateLabel("동작: SetOwner 25회", 4483362458)
+        local ultraCount = SetOwnerKickTab:CreateLabel("호출: 0", 4483362458)
+        local ultraSpeed = SetOwnerKickTab:CreateLabel("속도: 0회/초", 4483362458)
         
         -- 속도 측정
         local lastCount = 0
@@ -3970,28 +3970,28 @@ if SetOwnerKickTab then
         
         spawn(function()
             while true do
-                if FastKickT then
-                    fastStatus:Set("상태: 🟢 개빠름")
-                    fastAction:Set("동작: " .. (fastIsSetOwner and "SetOwner 5회" or "Destroy 5회"))
-                    fastCount:Set("호출: " .. fastTotalCalls)
+                if UltraKickT then
+                    ultraStatus:Set("상태: 🟢 초광속")
+                    ultraAction:Set("동작: " .. (ultraIsSetOwner and "SetOwner 25회" or "Destroy 25회"))
+                    ultraCount:Set("호출: " .. ultraTotalCalls)
                     
                     local now = tick()
                     if now - lastTime >= 1 then
-                        local speed = fastTotalCalls - lastCount
-                        fastSpeed:Set("속도: " .. speed .. "회/초")
-                        lastCount = fastTotalCalls
+                        local speed = ultraTotalCalls - lastCount
+                        ultraSpeed:Set("속도: " .. speed .. "회/초")
+                        lastCount = ultraTotalCalls
                         lastTime = now
                     end
                 else
-                    fastStatus:Set("상태: ⚫ 대기")
+                    ultraStatus:Set("상태: ⚫ 대기")
                 end
                 task.wait(0.1)
             end
         end)
         
         SetOwnerKickTab:CreateParagraph({
-            Title = "⚡ 스펙",
-            Content = "• 프레임당 10회 실행\n• 60FPS = 600회/초\n• SetOwner 5회 ↔ Destroy 5회 교대"
+            Title = "💥 스펙",
+            Content = "• 프레임당 50회 실행\n• 60FPS = 3,000회/초\n• 120FPS = 6,000회/초\n• SetOwner 25회 ↔ Destroy 25회 교대"
         })
     end)
 end
