@@ -3797,7 +3797,177 @@ if SetOwnerKickTab then
         })
     end)
                         end
-                    
+
+-- =============================================
+-- [ 실험용 프레임 교대 셋오너킥 ]
+-- =============================================
+if SetOwnerKickTab then
+    pcall(function()
+        SetOwnerKickTab:CreateSection("내가 쓰는거")
+        
+        local FrameKickT = false
+        local frameThread = nil
+        local frameTargetList = {}
+        local frameIsSetOwner = true
+        local frameTotalCalls = 0
+        local frameCount = 0
+        
+        local rs = game:GetService("ReplicatedStorage")
+        local GrabEvents = rs:FindFirstChild("GrabEvents")
+        local SetNetworkOwner = GrabEvents and (GrabEvents:FindFirstChild("SetNetworkOwner") or GrabEvents:FindFirstChild("SetOwner"))
+        local DestroyGrabLine = GrabEvents and (GrabEvents:FindFirstChild("DestroyGrabLine") or GrabEvents:FindFirstChild("DestroyLine"))
+        
+        local function findPlayer(name)
+            for _, p in ipairs(game.Players:GetPlayers()) do
+                if p.Name:lower():find(name:lower()) or (p.DisplayName and p.DisplayName:lower():find(name:lower())) then
+                    return p
+                end
+            end
+            return nil
+        end
+        
+        local function frameLoop()
+            frameIsSetOwner = true
+            frameTotalCalls = 0
+            frameCount = 0
+            
+            local connection = game:GetService("RunService").RenderStepped:Connect(function()
+                if not FrameKickT then
+                    connection:Disconnect()
+                    return
+                end
+                
+                frameCount = frameCount + 1
+                
+                if #frameTargetList == 0 then return end
+                
+                local targetName = frameTargetList[(frameCount % #frameTargetList) + 1]
+                local target = game.Players:FindFirstChild(targetName)
+                if not target then return end
+                
+                local myChar = game.Players.LocalPlayer.Character
+                local targetChar = target.Character
+                if not myChar or not targetChar then return end
+                
+                local myHRP = myChar:FindFirstChild("HumanoidRootPart")
+                local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
+                local cam = workspace.CurrentCamera
+                
+                if not myHRP or not targetHRP or not cam then return end
+                
+                local detentionPos = cam.CFrame * CFrame.new(0, 0, -19)
+                
+                if frameIsSetOwner then
+                    if SetNetworkOwner then
+                        SetNetworkOwner:FireServer(targetHRP, detentionPos)
+                        frameTotalCalls = frameTotalCalls + 1
+                    end
+                else
+                    if DestroyGrabLine then
+                        DestroyGrabLine:FireServer(targetHRP)
+                        frameTotalCalls = frameTotalCalls + 1
+                    end
+                end
+                
+                frameIsSetOwner = not frameIsSetOwner
+            end)
+            
+            frameThread = connection
+        end
+        
+        local frameDropdown = SetOwnerKickTab:CreateDropdown({
+            Name = "타겟",
+            Options = frameTargetList,
+            CurrentOption = {"열기"},
+            MultipleOptions = true,
+            Callback = function(opt) frameTargetList = opt end
+        })
+        
+        SetOwnerKickTab:CreateInput({
+            Name = "추가",
+            PlaceholderText = "닉네임",
+            RemoveTextAfterFocusLost = true,
+            Callback = function(v)
+                if v == "" then return end
+                local p = findPlayer(v)
+                if not p then 
+                    Rayfield:Notify({ Title = "❌ 없음", Duration = 2 }) 
+                    return 
+                end
+                for _, n in ipairs(frameTargetList) do
+                    if n == p.Name then 
+                        Rayfield:Notify({ Title = "⚠️ 중복", Duration = 2 }) 
+                        return 
+                    end
+                end
+                table.insert(frameTargetList, p.Name)
+                frameDropdown:Refresh(frameTargetList, true)
+                Rayfield:Notify({ Title = "✅ 추가: " .. p.Name, Duration = 2 })
+            end
+        })
+        
+        SetOwnerKickTab:CreateInput({
+            Name = "제거",
+            PlaceholderText = "닉네임",
+            RemoveTextAfterFocusLost = true,
+            Callback = function(v)
+                for i, n in ipairs(frameTargetList) do
+                    if n:lower():find(v:lower()) then
+                        table.remove(frameTargetList, i)
+                        frameDropdown:Refresh(frameTargetList, true)
+                        Rayfield:Notify({ Title = "✅ 제거: " .. n, Duration = 2 })
+                        return
+                    end
+                end
+                Rayfield:Notify({ Title = "❌ 없음", Duration = 2 })
+            end
+        })
+        
+        local frameToggle = SetOwnerKickTab:CreateToggle({
+            Name = "내가 쓰는거",
+            CurrentValue = false,
+            Callback = function(v)
+                FrameKickT = v
+                if v then
+                    if #frameTargetList == 0 then
+                        Rayfield:Notify({ Title = "❌ 타겟 없음", Duration = 2 })
+                        frameToggle:Set(false)
+                        return
+                    end
+                    if frameThread and frameThread.Disconnect then
+                        frameThread:Disconnect()
+                    end
+                    frameLoop()
+                    Rayfield:Notify({ Title = "✅ 시작", Duration = 2 })
+                else
+                    if frameThread and frameThread.Disconnect then
+                        frameThread:Disconnect()
+                        frameThread = nil
+                    end
+                    Rayfield:Notify({ Title = "⏹️ 종료", Duration = 2 })
+                end
+            end
+        })
+        
+        local frameStatus = SetOwnerKickTab:CreateLabel("실험 상태: 대기", 4483362458)
+        local frameAction = SetOwnerKickTab:CreateLabel("현재: SetOwner", 4483362458)
+        local frameCallCount = SetOwnerKickTab:CreateLabel("호출: 0", 4483362458)
+        
+        spawn(function()
+            while true do
+                if FrameKickT then
+                    frameStatus:Set("상태: 🟢 프레임 교대")
+                    frameAction:Set("현재: " .. (frameIsSetOwner and "SetOwner" or "Destroy"))
+                    frameCallCount:Set("호출: " .. frameTotalCalls)
+                else
+                    frameStatus:Set("상태: ⚫ 대기")
+                end
+                task.wait(0.1)
+            end
+        end)
+    end)
+end
+
 -- =============================================
 -- [ TP 버튼 생성 ]
 -- =============================================
