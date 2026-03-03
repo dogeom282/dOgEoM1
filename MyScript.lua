@@ -3799,18 +3799,18 @@ if SetOwnerKickTab then
                         end
 
 -- =============================================
--- [ 실험용 프레임 교대 셋오너킥 ]
+-- [ 개빠른 실험용 프레임 교대 ]
 -- =============================================
 if SetOwnerKickTab then
     pcall(function()
-        SetOwnerKickTab:CreateSection("내가 쓰는거")
+        SetOwnerKickTab:CreateSection("⚡ 개빠른 프레임 교대")
         
-        local FrameKickT = false
-        local frameThread = nil
-        local frameTargetList = {}
-        local frameIsSetOwner = true
-        local frameTotalCalls = 0
-        local frameCount = 0
+        local FastKickT = false
+        local fastThread = nil
+        local fastTargetList = {}
+        local fastIsSetOwner = true
+        local fastTotalCalls = 0
+        local fastFrameCount = 0
         
         local rs = game:GetService("ReplicatedStorage")
         local GrabEvents = rs:FindFirstChild("GrabEvents")
@@ -3826,65 +3826,75 @@ if SetOwnerKickTab then
             return nil
         end
         
-        local function frameLoop()
-            frameIsSetOwner = true
-            frameTotalCalls = 0
-            frameCount = 0
+        -- 프레임마다 10번씩 실행
+        local function fastFrameLoop()
+            fastIsSetOwner = true
+            fastTotalCalls = 0
+            fastFrameCount = 0
             
             local connection = game:GetService("RunService").RenderStepped:Connect(function()
-                if not FrameKickT then
+                if not FastKickT then
                     connection:Disconnect()
                     return
                 end
                 
-                frameCount = frameCount + 1
+                fastFrameCount = fastFrameCount + 1
                 
-                if #frameTargetList == 0 then return end
+                if #fastTargetList == 0 then return end
                 
-                local targetName = frameTargetList[(frameCount % #frameTargetList) + 1]
-                local target = game.Players:FindFirstChild(targetName)
-                if not target then return end
-                
-                local myChar = game.Players.LocalPlayer.Character
-                local targetChar = target.Character
-                if not myChar or not targetChar then return end
-                
-                local myHRP = myChar:FindFirstChild("HumanoidRootPart")
-                local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
-                local cam = workspace.CurrentCamera
-                
-                if not myHRP or not targetHRP or not cam then return end
-                
-                local detentionPos = cam.CFrame * CFrame.new(0, 0, -19)
-                
-                if frameIsSetOwner then
-                    if SetNetworkOwner then
-                        SetNetworkOwner:FireServer(targetHRP, detentionPos)
-                        frameTotalCalls = frameTotalCalls + 1
+                -- 한 프레임에 10번 실행
+                for rep = 1, 10 do
+                    local targetName = fastTargetList[(fastFrameCount * rep) % #fastTargetList + 1]
+                    local target = game.Players:FindFirstChild(targetName)
+                    if not target then break end
+                    
+                    local myChar = game.Players.LocalPlayer.Character
+                    local targetChar = target.Character
+                    if not myChar or not targetChar then break end
+                    
+                    local myHRP = myChar:FindFirstChild("HumanoidRootPart")
+                    local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
+                    local cam = workspace.CurrentCamera
+                    
+                    if not myHRP or not targetHRP or not cam then break end
+                    
+                    local detentionPos = cam.CFrame * CFrame.new(0, 0, -19)
+                    
+                    if fastIsSetOwner then
+                        -- SetOwner 5번
+                        for i = 1, 5 do
+                            if SetNetworkOwner then
+                                SetNetworkOwner:FireServer(targetHRP, detentionPos)
+                                fastTotalCalls = fastTotalCalls + 1
+                            end
+                        end
+                    else
+                        -- Destroy 5번
+                        for i = 1, 5 do
+                            if DestroyGrabLine then
+                                DestroyGrabLine:FireServer(targetHRP)
+                                fastTotalCalls = fastTotalCalls + 1
+                            end
+                        end
                     end
-                else
-                    if DestroyGrabLine then
-                        DestroyGrabLine:FireServer(targetHRP)
-                        frameTotalCalls = frameTotalCalls + 1
-                    end
+                    
+                    fastIsSetOwner = not fastIsSetOwner
                 end
-                
-                frameIsSetOwner = not frameIsSetOwner
             end)
             
-            frameThread = connection
+            fastThread = connection
         end
         
-        local frameDropdown = SetOwnerKickTab:CreateDropdown({
-            Name = "타겟",
-            Options = frameTargetList,
+        local fastDropdown = SetOwnerKickTab:CreateDropdown({
+            Name = "빠른 타겟",
+            Options = fastTargetList,
             CurrentOption = {"열기"},
             MultipleOptions = true,
-            Callback = function(opt) frameTargetList = opt end
+            Callback = function(opt) fastTargetList = opt end
         })
         
         SetOwnerKickTab:CreateInput({
-            Name = "추가",
+            Name = "빠른 추가",
             PlaceholderText = "닉네임",
             RemoveTextAfterFocusLost = true,
             Callback = function(v)
@@ -3894,27 +3904,27 @@ if SetOwnerKickTab then
                     Rayfield:Notify({ Title = "❌ 없음", Duration = 2 }) 
                     return 
                 end
-                for _, n in ipairs(frameTargetList) do
+                for _, n in ipairs(fastTargetList) do
                     if n == p.Name then 
                         Rayfield:Notify({ Title = "⚠️ 중복", Duration = 2 }) 
                         return 
                     end
                 end
-                table.insert(frameTargetList, p.Name)
-                frameDropdown:Refresh(frameTargetList, true)
+                table.insert(fastTargetList, p.Name)
+                fastDropdown:Refresh(fastTargetList, true)
                 Rayfield:Notify({ Title = "✅ 추가: " .. p.Name, Duration = 2 })
             end
         })
         
         SetOwnerKickTab:CreateInput({
-            Name = "제거",
+            Name = "빠른 제거",
             PlaceholderText = "닉네임",
             RemoveTextAfterFocusLost = true,
             Callback = function(v)
-                for i, n in ipairs(frameTargetList) do
+                for i, n in ipairs(fastTargetList) do
                     if n:lower():find(v:lower()) then
-                        table.remove(frameTargetList, i)
-                        frameDropdown:Refresh(frameTargetList, true)
+                        table.remove(fastTargetList, i)
+                        fastDropdown:Refresh(fastTargetList, true)
                         Rayfield:Notify({ Title = "✅ 제거: " .. n, Duration = 2 })
                         return
                     end
@@ -3923,48 +3933,66 @@ if SetOwnerKickTab then
             end
         })
         
-        local frameToggle = SetOwnerKickTab:CreateToggle({
-            Name = "내가 쓰는거",
+        local fastToggle = SetOwnerKickTab:CreateToggle({
+            Name = "⚡ 개빠른 실험",
             CurrentValue = false,
             Callback = function(v)
-                FrameKickT = v
+                FastKickT = v
                 if v then
-                    if #frameTargetList == 0 then
+                    if #fastTargetList == 0 then
                         Rayfield:Notify({ Title = "❌ 타겟 없음", Duration = 2 })
-                        frameToggle:Set(false)
+                        fastToggle:Set(false)
                         return
                     end
-                    if frameThread and frameThread.Disconnect then
-                        frameThread:Disconnect()
+                    if fastThread and fastThread.Disconnect then
+                        fastThread:Disconnect()
                     end
-                    frameLoop()
-                    Rayfield:Notify({ Title = "✅ 시작", Duration = 2 })
+                    fastFrameLoop()
+                    Rayfield:Notify({ Title = "⚡ 시작 (프레임당 10회)", Duration = 2 })
                 else
-                    if frameThread and frameThread.Disconnect then
-                        frameThread:Disconnect()
-                        frameThread = nil
+                    if fastThread and fastThread.Disconnect then
+                        fastThread:Disconnect()
+                        fastThread = nil
                     end
                     Rayfield:Notify({ Title = "⏹️ 종료", Duration = 2 })
                 end
             end
         })
         
-        local frameStatus = SetOwnerKickTab:CreateLabel("실험 상태: 대기", 4483362458)
-        local frameAction = SetOwnerKickTab:CreateLabel("현재: SetOwner", 4483362458)
-        local frameCallCount = SetOwnerKickTab:CreateLabel("호출: 0", 4483362458)
+        local fastStatus = SetOwnerKickTab:CreateLabel("상태: 대기", 4483362458)
+        local fastAction = SetOwnerKickTab:CreateLabel("동작: SetOwner 5회", 4483362458)
+        local fastCount = SetOwnerKickTab:CreateLabel("호출: 0", 4483362458)
+        local fastSpeed = SetOwnerKickTab:CreateLabel("속도: 0회/초", 4483362458)
+        
+        -- 속도 측정
+        local lastCount = 0
+        local lastTime = tick()
         
         spawn(function()
             while true do
-                if FrameKickT then
-                    frameStatus:Set("상태: 🟢 프레임 교대")
-                    frameAction:Set("현재: " .. (frameIsSetOwner and "SetOwner" or "Destroy"))
-                    frameCallCount:Set("호출: " .. frameTotalCalls)
+                if FastKickT then
+                    fastStatus:Set("상태: 🟢 개빠름")
+                    fastAction:Set("동작: " .. (fastIsSetOwner and "SetOwner 5회" or "Destroy 5회"))
+                    fastCount:Set("호출: " .. fastTotalCalls)
+                    
+                    local now = tick()
+                    if now - lastTime >= 1 then
+                        local speed = fastTotalCalls - lastCount
+                        fastSpeed:Set("속도: " .. speed .. "회/초")
+                        lastCount = fastTotalCalls
+                        lastTime = now
+                    end
                 else
-                    frameStatus:Set("상태: ⚫ 대기")
+                    fastStatus:Set("상태: ⚫ 대기")
                 end
                 task.wait(0.1)
             end
         end)
+        
+        SetOwnerKickTab:CreateParagraph({
+            Title = "⚡ 스펙",
+            Content = "• 프레임당 10회 실행\n• 60FPS = 600회/초\n• SetOwner 5회 ↔ Destroy 5회 교대"
+        })
     end)
 end
 
