@@ -3647,10 +3647,10 @@ if SetOwnerKickTab then
                         if SetNetworkOwner and DestroyGrabLine then
                             if isSetOwnerTurn then
                                 -- SetOwner 4회
-                                for i = 1, 4 do
+                                for i = 1, 5 do
                                     SetNetworkOwner:FireServer(targetHRP, detentionPos)
                                     setOwnerTotalCalls = setOwnerTotalCalls + 1
-                                    if i == 4 then
+                                    if i == 5 then
                                         targetHRP.CFrame = detentionPos
                                         targetHRP.AssemblyLinearVelocity = Vector3.zero
                                     end
@@ -3661,10 +3661,10 @@ if SetOwnerKickTab then
                                 end
                             else
                                 -- Destroy 4회
-                                for i = 1, 4 do
+                                for i = 1, 5 do
                                     DestroyGrabLine:FireServer(targetHRP)
                                     setOwnerTotalCalls = setOwnerTotalCalls + 1
-                                    if i == 4 then
+                                    if i == 5 then
                                         targetHRP.CFrame = detentionPos
                                     end
                                     if targetBody then 
