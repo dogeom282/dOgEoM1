@@ -1,0 +1,270 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+    Name = "Owner Kick",
+    LoadingTitle = "Loading...",
+    LoadingSubtitle = "by Script",
+    ConfigurationSaving = { Enabled = false },
+    Discord = { Enabled = false },
+    KeySystem = false,
+})
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+local plr = Players.LocalPlayer
+local rs = ReplicatedStorage
+
+local GrabEvents = rs:WaitForChild("GrabEvents")
+local SetNetworkOwner = GrabEvents:WaitForChild("SetNetworkOwner")
+local DestroyGrabLine = GrabEvents:WaitForChild("DestroyGrabLine")
+
+local OwnerKickActive = false
+local kickTargetList = {}
+local connection1 = nil  -- Heartbeat
+local connection2 = nil  -- RenderStepped
+local bodyPositions = {}
+local bodyVelocities = {}
+
+-- ==========================================
+-- [ 핵심 실행 함수 ]
+-- ==========================================
+
+local function processKick()
+    if not OwnerKickActive then return end
+    
+    local myChar = plr.Character
+    local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
+    if not myHrp then return end
+    
+    local fixedY = myHrp.Position.Y + 10
+    local fixedPos = Vector3.new(myHrp.Position.X, fixedY, myHrp.Position.Z)
+    
+    for _, name in ipairs(kickTargetList) do
+        local target = Players:FindFirstChild(name)
+        if target and target ~= plr then
+            local targetChar = target.Character
+            if targetChar then
+                local targetHrp = targetChar:FindFirstChild("HumanoidRootPart") or targetChar:FindFirstChild("Torso")
+                if targetHrp then
+                    pcall(function()
+                        -- 위치 고정
+                        targetHrp.CFrame = CFrame.new(fixedPos)
+                        targetHrp.Velocity = Vector3.zero
+                        targetHrp.AssemblyLinearVelocity = Vector3.zero
+                        targetHrp.AssemblyAngularVelocity = Vector3.zero
+                        
+                        -- BodyPosition 추가 및 업데이트
+                        if not bodyPositions[target] then
+                            local bp = Instance.new("BodyPosition")
+                            bp.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+                            bp.P = 1000000
+                            bp.D = 10000
+                            bp.Parent = targetHrp
+                            bodyPositions[target] = bp
+                        end
+                        bodyPositions[target].Position = fixedPos
+                        
+                        -- BodyVelocity 추가
+                        if not bodyVelocities[target] then
+                            local bv = Instance.new("BodyVelocity")
+                            bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+                            bv.Velocity = Vector3.zero
+                            bv.Parent = targetHrp
+                            bodyVelocities[target] = bv
+                        end
+                        
+                        -- 5회 연속 호출
+                        for i = 1, 5 do
+                            SetNetworkOwner:FireServer(targetHrp, CFrame.lookAt(myHrp.Position, targetHrp.Position))
+                            DestroyGrabLine:FireServer(targetHrp)
+                        end
+                    end)
+                end
+            end
+        end
+    end
+end
+
+-- ==========================================
+-- [ Heartbeat + RenderStepped 실행 ]
+-- ==========================================
+
+local function startOwnerKick()
+    -- 기존 연결 해제
+    if connection1 then connection1:Disconnect() end
+    if connection2 then connection2:Disconnect() end
+    
+    -- Heartbeat (물리 엔진 직후 - 가장 빠름)
+    connection1 = RunService.Heartbeat:Connect(function()
+        processKick()
+    end)
+    
+    -- RenderStepped (화면 렌더링 직후 - 보조)
+    connection2 = RunService.RenderStepped:Connect(function()
+        processKick()
+    end)
+end
+
+local function stopOwnerKick()
+    OwnerKickActive = false
+    if connection1 then
+        connection1:Disconnect()
+        connection1 = nil
+    end
+    if connection2 then
+        connection2:Disconnect()
+        connection2 = nil
+    end
+    
+    -- 모든 물리 제약 제거
+    for target, _ in pairs(bodyPositions) do
+        pcall(function() bodyPositions[target]:Destroy() end)
+        pcall(function() bodyVelocities[target]:Destroy() end)
+    end
+    bodyPositions = {}
+    bodyVelocities = {}
+end
+
+-- ==========================================
+-- [ UI ]
+-- ==========================================
+
+local MainTab = Window:CreateTab("Kick", nil)
+
+MainTab:CreateSection("TARGET LIST")
+
+local kickDropdown = MainTab:CreateDropdown({
+    Name = "Target List",
+    Options = kickTargetList,
+    CurrentOption = {"OPEN"},
+    MultipleOptions = true,
+    Callback = function(opt)
+        kickTargetList = opt
+    end
+})
+
+MainTab:CreateInput({
+    Name = "Add Target",
+    PlaceholderText = "Username",
+    RemoveTextAfterFocusLost = true,
+    Callback = function(v)
+        if v == "" then return end
+        local found = nil
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p.Name:lower():find(v:lower()) or (p.DisplayName and p.DisplayName:lower():find(v:lower())) then
+                found = p
+                break
+            end
+        end
+        if not found then return end
+        for _, n in ipairs(kickTargetList) do
+            if n == found.Name then return end
+        end
+        table.insert(kickTargetList, found.Name)
+        kickDropdown:Refresh(kickTargetList, true)
+    end
+})
+
+MainTab:CreateInput({
+    Name = "Remove Target",
+    PlaceholderText = "Username",
+    RemoveTextAfterFocusLost = true,
+    Callback = function(v)
+        for i, n in ipairs(kickTargetList) do
+            if n:lower():find(v:lower()) then
+                table.remove(kickTargetList, i)
+                kickDropdown:Refresh(kickTargetList, true)
+                return
+            end
+        end
+    end
+})
+
+MainTab:CreateButton({
+    Name = "Clear List",
+    Callback = function()
+        kickTargetList = {}
+        kickDropdown:Refresh(kickTargetList, true)
+    end
+})
+
+local targetCountLabel = MainTab:CreateLabel("Targets: 0", 4483362458)
+
+spawn(function()
+    while true do
+        targetCountLabel:Set("Targets: " .. #kickTargetList)
+        task.wait(0.2)
+    end
+end)
+
+MainTab:CreateSection("EXECUTE")
+
+MainTab:CreateToggle({
+    Name = "Owner Kick (Heartbeat + RenderStepped)",
+    CurrentValue = false,
+    Callback = function(Value)
+        OwnerKickActive = Value
+        if Value then
+            startOwnerKick()
+            Rayfield:Notify({
+                Title = "Owner Kick",
+                Content = "Started - Dual mode",
+                Duration = 2
+            })
+        else
+            stopOwnerKick()
+            Rayfield:Notify({
+                Title = "Owner Kick",
+                Content = "Stopped",
+                Duration = 2
+            })
+        end
+    end
+})
+
+MainTab:CreateButton({
+    Name = "Kick Once (Test)",
+    Callback = function()
+        local count = 0
+        local myChar = plr.Character
+        local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
+        if not myHrp then return end
+        
+        local fixedY = myHrp.Position.Y + 10
+        local fixedPos = Vector3.new(myHrp.Position.X, fixedY, myHrp.Position.Z)
+        
+        for _, name in ipairs(kickTargetList) do
+            local target = Players:FindFirstChild(name)
+            if target then
+                local targetChar = target.Character
+                if targetChar then
+                    local targetHrp = targetChar:FindFirstChild("HumanoidRootPart") or targetChar:FindFirstChild("Torso")
+                    if targetHrp then
+                        pcall(function()
+                            targetHrp.CFrame = CFrame.new(fixedPos)
+                            targetHrp.Velocity = Vector3.zero
+                            for i = 1, 10 do
+                                SetNetworkOwner:FireServer(targetHrp, CFrame.lookAt(myHrp.Position, targetHrp.Position))
+                                DestroyGrabLine:FireServer(targetHrp)
+                            end
+                            count = count + 1
+                        end)
+                    end
+                end
+            end
+        end
+        Rayfield:Notify({
+            Title = "Owner Kick",
+            Content = "Kicked " .. count .. " targets",
+            Duration = 2
+        })
+    end
+})
+
+Rayfield:Notify({
+    Title = "Loaded",
+    Content = "Owner Kick Ready",
+    Duration = 3
+})
